@@ -985,4 +985,61 @@ equal(subscription.status(forget_ctx, { "3765064055" })["3765064055"], "subscrib
     "record is re-read from Steam after a sign-out")
 equal(forget_ctx.request_count(), request_count + 1, "sign-out drops the recorded state")
 
+-- Wallpaper property titles are keys into Wallpaper Engine's own locale
+-- tables. The plugin used to read ui_en-us.json only, so a Russian user read
+-- English property names next to a Russian UI. `$LANG` now picks the file,
+-- with en-us left behind it because the translated files trail en-us by a few
+-- dozen keys.
+local locale_dir = steam_root .. "/steamapps/common/wallpaper_engine/locale/"
+local locale_files = {
+    ["ui_en-us.json"] = { ui_prop_speed = "Speed", ui_prop_only_en = "English only" },
+    ["ui_ru-ru.json"] = { ui_prop_speed = "Скорость" },
+}
+local locale_ctx = {
+    env = function(name) return name == "LANG" and "ru_RU.UTF-8" or nil end,
+    config = { get = function() return nil end },
+    fs = {
+        exists = function(path)
+            local name = path:match("([^/]+)$")
+            if path:sub(1, #locale_dir) == locale_dir then
+                return locale_files[name] ~= nil
+            end
+            return path == item_dir .. "/project.json"
+        end,
+        read = function(path)
+            local name = path:match("([^/]+)$")
+            if path:sub(1, #locale_dir) == locale_dir and locale_files[name] then
+                return "locale:" .. name
+            end
+            if path == item_dir .. "/project.json" then return "locale-project" end
+            return nil
+        end,
+    },
+    json = {
+        parse = function(value)
+            local name = value:match("^locale:(.+)$")
+            if name then return locale_files[name] end
+            if value == "locale-project" then
+                return { general = { properties = {
+                    speed = { text = "ui_prop_speed", type = "slider", value = 1 },
+                    only_en = { text = "ui_prop_only_en", type = "bool", value = true },
+                    unknown = { text = "ui_prop_absent", type = "bool", value = true },
+                } } }
+            end
+            return nil
+        end,
+        encode = function(value) return value end,
+    },
+}
+local locale_props = main.wallpaper.properties(
+    { wp_type = "scene", resource = item_dir .. "/scene.pkg", library_root = steam_root },
+    locale_ctx
+)
+truthy(locale_props.speed.text:find("Скорость", 1, true),
+    "property title takes the translation for the user's language")
+truthy(locale_props.only_en.text:find("English only", 1, true),
+    "key missing from the translated file falls back to en-us")
+truthy(locale_props.unknown.text:find("ui_prop_absent", 1, true),
+    "key in neither file is left alone")
+
 print("OWE waywallen Lua contract fixtures passed")

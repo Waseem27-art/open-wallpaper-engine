@@ -3,32 +3,121 @@ local project_util = import("wallpaper_engine.project")
 local M = {}
 
 local _locale_cache = {}
+local _tag_cache = nil
 
-local LOCALE_REL = "/steamapps/common/wallpaper_engine/locale/ui_en-us.json"
+local LOCALE_DIR = "/steamapps/common/wallpaper_engine/locale/"
+local FALLBACK_TAG = "en-us"
 local PROPERTY_TITLE_PREFIX = "<style>\n  img { max-width: 100%; }\n  </style>\n"
 
-local function load_locale(ctx, library_root)
-    if library_root == nil or library_root == "" then return nil end
-    if _locale_cache[library_root] ~= nil then
-        return _locale_cache[library_root] or nil
+-- Wallpaper Engine names its locale files after its own language list, not
+-- after the POSIX locale, so the tag cannot always be derived from `$LANG`.
+-- Only the cases `<lang>-<region>` and `<lang>-<lang>` miss are listed here.
+local LOCALE_ALIASES = {
+    ["zh-cn"] = "zh-chs", ["zh-sg"] = "zh-chs", ["zh-hans"] = "zh-chs",
+    ["zh-tw"] = "zh-cht", ["zh-hk"] = "zh-cht", ["zh-mo"] = "zh-cht",
+    ["zh-hant"] = "zh-cht",
+    ar = "ar-sa", be = "be-by", cs = "cs-cz", da = "da-dk", el = "el-gr",
+    en = "en-us", eu = "eu-es", fa = "fa-ir", he = "he-il", ja = "ja-jp",
+    ko = "ko-kr", nb = "nb-no", no = "nb-no", pt = "pt-pt", sl = "sl-si",
+    sv = "sv-se", uk = "uk-ua", vi = "vi-vn", zh = "zh-chs",
+}
+
+-- "ru_RU.UTF-8@euro" / "ru-RU" -> "ru", "ru". Region may come back empty.
+local function split_posix_locale(value)
+    local body = string.match(value, "^([^.@]+)") or value
+    body = string.gsub(body, "-", "_")
+    local lang, region = string.match(body, "^(%a+)_(%w+)$")
+    if not lang then
+        lang = string.match(body, "^(%a+)$")
     end
-    local path = library_root .. LOCALE_REL
-    if not ctx.fs.exists(path) then
-        _locale_cache[library_root] = false
-        return nil
+    if not lang then return nil, nil end
+    return string.lower(lang), region and string.lower(region) or nil
+end
+
+-- The language the user reads, as a Wallpaper Engine locale tag. An explicit
+-- `wallpaper_engine_locale` setting wins; otherwise the daemon's environment
+-- decides, in POSIX precedence. Every candidate is probed against the actual
+-- locale directory, so an unknown tag falls through instead of blanking the
+-- property titles.
+local function locale_tags(ctx, dir)
+    if _tag_cache then return _tag_cache end
+
+    local candidates = {}
+    local function add(tag)
+        if tag and tag ~= "" then table.insert(candidates, tag) end
     end
+
+    local configured = ctx.config.get("wallpaper_engine_locale")
+    if configured and configured ~= "" then
+        add(string.lower(configured))
+    end
+
+    local env = nil
+    for _, name in ipairs({ "LC_ALL", "LC_MESSAGES", "LANG" }) do
+        local v = ctx.env(name)
+        if v and v ~= "" and v ~= "C" and v ~= "POSIX" then
+            env = v
+            break
+        end
+    end
+    if env then
+        local lang, region = split_posix_locale(env)
+        if lang then
+            if region then
+                add(lang .. "-" .. region)
+                add(LOCALE_ALIASES[lang .. "-" .. region])
+            end
+            add(lang .. "-" .. lang)
+            add(LOCALE_ALIASES[lang])
+        end
+    end
+
+    local tag = nil
+    for _, candidate in ipairs(candidates) do
+        if ctx.fs.exists(dir .. "ui_" .. candidate .. ".json") then
+            tag = candidate
+            break
+        end
+    end
+
+    _tag_cache = { tag = tag, fallback = FALLBACK_TAG }
+    return _tag_cache
+end
+
+local function read_locale_file(ctx, path)
+    if not ctx.fs.exists(path) then return nil end
     local content = ctx.fs.read(path)
-    if not content then
-        _locale_cache[library_root] = false
-        return nil
-    end
+    if not content then return nil end
     local parsed = ctx.json.parse(content)
-    if type(parsed) ~= "table" then
-        _locale_cache[library_root] = false
-        return nil
-    end
-    _locale_cache[library_root] = parsed
+    if type(parsed) ~= "table" then return nil end
     return parsed
+end
+
+-- Returns the translated table and the English one. Wallpaper Engine's
+-- translated files trail en-us by a few dozen keys; without the English
+-- table behind them those properties would show their raw locale key.
+local function load_locale(ctx, library_root)
+    if library_root == nil or library_root == "" then return nil, nil end
+    local cached = _locale_cache[library_root]
+    if cached ~= nil then
+        if cached == false then return nil, nil end
+        return cached.localized, cached.fallback
+    end
+
+    local dir = library_root .. LOCALE_DIR
+    local tags = locale_tags(ctx, dir)
+    local fallback = read_locale_file(ctx, dir .. "ui_" .. tags.fallback .. ".json")
+    local localized = nil
+    if tags.tag and tags.tag ~= tags.fallback then
+        localized = read_locale_file(ctx, dir .. "ui_" .. tags.tag .. ".json")
+    end
+
+    if not localized and not fallback then
+        _locale_cache[library_root] = false
+        return nil, nil
+    end
+    _locale_cache[library_root] = { localized = localized, fallback = fallback }
+    return localized, fallback
 end
 
 local PROPERTY_KEY_MAP = {
@@ -111,11 +200,14 @@ function M.properties(entry, ctx)
     if not props then return nil end
     map_property_keys(props)
 
-    local locale = load_locale(ctx, entry.library_root)
-    if locale then
+    local locale, locale_fallback = load_locale(ctx, entry.library_root)
+    if locale or locale_fallback then
         for _, v in pairs(props) do
             if type(v) == "table" and type(v.text) == "string" then
-                local mapped = locale[v.text]
+                local mapped = locale and locale[v.text] or nil
+                if type(mapped) ~= "string" or mapped == "" then
+                    mapped = locale_fallback and locale_fallback[v.text] or nil
+                end
                 if type(mapped) == "string" and mapped ~= "" then
                     v.text = mapped
                 end
