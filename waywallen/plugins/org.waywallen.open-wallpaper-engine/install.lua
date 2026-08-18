@@ -1,11 +1,11 @@
 local bundle_layout = lito.env("OWE_WAYWALLEN_PLUGIN_BUNDLE_LAYOUT") == "ON"
 local plugin = "share/waywallen/plugins/org.waywallen.open-wallpaper-engine"
 local scene_bin = "../../../../bin/waywallen-wescene-renderer"
-local web_bin = "../../../../bin/weweb/waywallen-weweb-renderer"
+local web_bin = "../../../../lib/weweb/waywallen-weweb-renderer"
 if bundle_layout then
     plugin = ""
     scene_bin = "bin/waywallen-wescene-renderer"
-    web_bin = "bin/weweb/waywallen-weweb-renderer"
+    web_bin = "lib/weweb/waywallen-weweb-renderer"
 end
 
 local function plugin_path(path)

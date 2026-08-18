@@ -1,12 +1,22 @@
-# CEF target and runtime integration for its binary distribution.
+# CEF target and runtime integration.
 
-if(NOT DEFINED cef_SOURCE_DIR)
-    message(FATAL_ERROR
-        "weweb: cef_SOURCE_DIR is unset. fetchdeps() must run before CEF setup.")
+if(NOT DEFINED LITO_CMAKE_DEPENDENCY_MODE)
+    message(FATAL_ERROR "weweb: LITO_CMAKE_DEPENDENCY_MODE is unset")
 endif()
 
-set(CEF_ROOT "${cef_SOURCE_DIR}" CACHE PATH "CEF binary distribution root" FORCE)
-list(APPEND CMAKE_MODULE_PATH "${cef_SOURCE_DIR}/cmake")
+set(_weweb_cef_source FALSE)
+if(LITO_CMAKE_DEPENDENCY_MODE STREQUAL "source")
+    if(NOT DEFINED LITO_CMAKE_DEPENDENCY_SOURCE_DIR)
+        message(FATAL_ERROR "weweb: LITO_CMAKE_DEPENDENCY_SOURCE_DIR is unset")
+    endif()
+    set(_weweb_cef_source TRUE)
+    set(CEF_ROOT "${LITO_CMAKE_DEPENDENCY_SOURCE_DIR}"
+        CACHE PATH "CEF binary distribution root" FORCE)
+    list(APPEND CMAKE_MODULE_PATH "${LITO_CMAKE_DEPENDENCY_SOURCE_DIR}/cmake")
+elseif(NOT LITO_CMAKE_DEPENDENCY_MODE STREQUAL "find")
+    message(FATAL_ERROR
+        "weweb: unsupported CMake dependency mode '${LITO_CMAKE_DEPENDENCY_MODE}'")
+endif()
 
 if(NOT DEFINED PROJECT_ARCH)
     string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _weweb_system_processor)
@@ -18,6 +28,35 @@ if(NOT DEFINED PROJECT_ARCH)
 endif()
 
 find_package(CEF REQUIRED)
+
+if(NOT _weweb_cef_source)
+    if(NOT TARGET CEF::Library)
+        message(FATAL_ERROR "weweb: installed CEF package does not provide CEF::Library")
+    endif()
+    if(NOT TARGET libcef_lib)
+        add_library(libcef_lib INTERFACE)
+        target_link_libraries(libcef_lib INTERFACE CEF::Library)
+    endif()
+    if(NOT TARGET libcef_dll_wrapper)
+        if(NOT TARGET CEF::Wrapper)
+            message(FATAL_ERROR "weweb: installed CEF package does not provide CEF::Wrapper")
+        endif()
+        add_library(libcef_dll_wrapper INTERFACE)
+        target_link_libraries(libcef_dll_wrapper INTERFACE CEF::Wrapper)
+    endif()
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND TARGET libcef_dll_wrapper)
+        get_target_property(_weweb_cef_wrapper_imported libcef_dll_wrapper IMPORTED)
+        get_target_property(_weweb_cef_wrapper_type libcef_dll_wrapper TYPE)
+        if(NOT _weweb_cef_wrapper_imported AND
+           NOT _weweb_cef_wrapper_type STREQUAL "INTERFACE_LIBRARY")
+            target_compile_options(libcef_dll_wrapper PRIVATE -Wno-undefined-var-template)
+        endif()
+    endif()
+    if(COMMAND lito_export_asset_set)
+        lito_export_asset_set(NAME runtime PROVIDED)
+    endif()
+    return()
+endif()
 
 # Minimal distributions only contain the Release binary directory.
 set(CEF_BINARY_DIR "${CEF_BINARY_DIR_RELEASE}")
