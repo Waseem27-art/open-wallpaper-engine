@@ -43,10 +43,14 @@ command -v git >/dev/null || fail "git not found"
 command -v python3 >/dev/null || fail "python3 not found"
 [[ -f "$ENV_FILE" ]] || fail "missing $ENV_FILE"
 
-info "Installing lito"
-curl -fsSL https://raw.githubusercontent.com/litocpp/lito/main/install.sh | bash
-LITO_BIN="$HOME/.local/bin/lito"
-[[ -x "$LITO_BIN" ]] || fail "lito installer did not create $LITO_BIN"
+if [[ -n "${LITO_BIN:-}" ]] && "$LITO_BIN" --help >/dev/null 2>&1; then
+    info "Using lito: $LITO_BIN"
+else
+    info "Installing lito"
+    curl -fsSL https://raw.githubusercontent.com/litocpp/lito/main/install.sh | bash
+    LITO_BIN="$HOME/.local/bin/lito"
+    [[ -x "$LITO_BIN" ]] || fail "lito installer did not create $LITO_BIN"
+fi
 
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$PROJECT_DIR/build/.cache}"
 export CONDARC="${CONDARC:-$PROJECT_DIR/build/condarc}"

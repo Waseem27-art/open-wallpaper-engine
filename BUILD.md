@@ -7,7 +7,7 @@ OWE is built with [lito](https://github.com/litocpp/lito).
 | Dependency | Version | Notes |
 |------------|---------|-------|
 | Clang | 22+ | C++20 modules toolchain |
-| lito | 0.1.1+ | C++ builder |
+| lito | 0.3.0+ | C++ builder |
 | CMake | 4.0+ | used for CMake dependencies |
 | Ninja | recent | CMake dependency builds |
 | pkg-config | - | system dependency discovery |
