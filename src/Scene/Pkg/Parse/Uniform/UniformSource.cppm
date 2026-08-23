@@ -132,8 +132,8 @@ inline auto TextureTexelOutput(std::size_t index) -> UniformOutputId {
 
 struct UniformCameraParallax {
     bool  enable { false };
-    float amount { 0.0f };
-    float delay { 0.0f };
+    float amount { 0.5f };
+    float delay { 0.1f };
     float mouse_influence { 0.0f };
 };
 
@@ -146,9 +146,9 @@ struct UniformCameraShake {
 
 struct UniformNodeConfigDraft {
     bool                    configured { false };
-    array<float, 2>         parallax_depth { 0.0f, 0.0f };
-    array<float, 2>         propagated_parallax_depth { 0.0f, 0.0f };
-    bool                    propagate_parallax_to_children { true };
+    i32                     object_id { 0 };
+    array<float, 2>         parallax_depth { 1.0f, 1.0f };
+    bool                    ride_parent_parallax { false };
     bool                    use_camera_eye_position { false };
     Option<array<float, 3>> eye_position_override;
     bool                    vertices_in_world_space { false };
@@ -156,6 +156,7 @@ struct UniformNodeConfigDraft {
     array<float, 2>         effect_projection_size { 0.0f, 0.0f };
 
     auto Clone() const -> UniformNodeConfigDraft;
+    void SetParallaxContract(array<float, 2> depth, i32 owner = i32());
 };
 
 class UniformCameraResolver {
@@ -177,8 +178,9 @@ private:
 struct UniformNodeState {
     Arc<SceneNode>             node;
     Arc<UniformCameraResolver> camera_resolver;
-    array<float, 2>            propagated_parallax_depth { 0.0f, 0.0f };
-    bool                       propagate_parallax_to_children { true };
+    i32                        object_id { 0 };
+    array<float, 2>            parallax_depth { 1.0f, 1.0f };
+    bool                       ride_parent_parallax { false };
     bool                       use_camera_eye_position { false };
     Option<array<float, 3>>    eye_position_override;
     bool                       vertices_in_world_space { false };
@@ -202,7 +204,11 @@ public:
 
     void SetNodeState(SceneNodeId, Arc<UniformNodeState>);
     bool SetEffectProjectionSize(SceneNodeId, array<float, 2>);
-    auto ResolveParallaxState(const UniformNodeState&) const -> const UniformNodeState&;
+    bool SetObjectParallaxDepth(i32, array<float, 2>);
+    bool ApplyObjectParallaxDepth(i32, const Json&);
+    auto FindNodeState(const SceneNode*) const -> const UniformNodeState*;
+    auto ComputeParallaxOffset(const UniformNodeState&, const SceneCamera&,
+                               SceneRenderViewKind) const -> array<float, 2>;
 
     UniformCameraParallax&       CameraParallax() noexcept { return m_camera_parallax; }
     const UniformCameraParallax& CameraParallax() const noexcept { return m_camera_parallax; }
@@ -213,7 +219,6 @@ public:
 
     void SetOrtho(float width, float height) { m_ortho = { width, height }; }
     void SetPointerInput(double, double);
-    void SetPointerDelay(float);
     void SetAudioSpectrum(const scene_audio::Buffers&);
     void Advance(const SceneFrame&);
     void ApplyUserProperty(std::string_view, const Json&);
@@ -230,15 +235,18 @@ private:
 
     HashMap<u64, Arc<UniformNodeState>>              m_nodes;
     HashMap<const SceneNode*, Arc<UniformNodeState>> m_nodes_by_address;
-    UniformFrameInputs                               m_inputs;
-    UniformCameraParallax                            m_camera_parallax;
-    UniformCameraShake                               m_camera_shake;
-    array<float, 2>                                  m_ortho { 1920.0f, 1080.0f };
-    array<float, 2>                                  m_pointer_input { 0.5f, 0.5f };
-    Arc<AudioResponseDemand>                         m_audio_demand;
-    float                                            m_pointer_delay { 0.0f };
-    double                                           m_pointer_delayed_time { 0.0 };
-    rstd::time::Instant m_last_pointer_input_time { rstd::time::Instant::now() };
+    HashMap<i32, Vec<Arc<UniformNodeState>>>         m_nodes_by_object;
+    HashMap<i32, array<float, 2>>                    m_object_parallax_depths;
+
+    auto LogicalParallaxState(const UniformNodeState&) const -> const UniformNodeState*;
+    auto ParentParallaxState(const UniformNodeState&) const -> const UniformNodeState*;
+
+    UniformFrameInputs       m_inputs;
+    UniformCameraParallax    m_camera_parallax;
+    UniformCameraShake       m_camera_shake;
+    array<float, 2>          m_ortho { 1920.0f, 1080.0f };
+    array<float, 2>          m_pointer_input { 0.5f, 0.5f };
+    Arc<AudioResponseDemand> m_audio_demand;
 };
 
 class UniformRuntimeInput {

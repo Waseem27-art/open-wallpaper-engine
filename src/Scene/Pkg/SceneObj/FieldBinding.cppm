@@ -77,7 +77,7 @@ bool ParseAnimOptions(const owe::Json&, AnimOptions&);
 bool ParseAnimCurve(const owe::Json&, AnimCurve&);
 
 // One captured `{value, script, scriptproperties, user}` per-field
-// binding. `source` is the inline JS module text observed in scene.json's
+// script binding. `source` is the inline JS module text observed in scene.json's
 // `"script"` key (5286 bindings, 2877 unique sources in the workshop
 // corpus — see `tests/wpscriptdump`). `properties` mirrors the per-binding
 // `scriptproperties` config block; `initial_value` is the binding's
@@ -99,6 +99,9 @@ struct FieldBindings {
     std::unordered_map<std::string, AnimCurve>     animations;
     rstd::json::Map                                scriptproperties;
     std::unordered_map<std::string, ScriptBinding> scripts;
+    // Direct `{value, user}` bindings exist without an accompanying script. Keep them independent
+    // from ScriptBinding so runtime property updates do not require manufacturing an empty script.
+    std::unordered_map<std::string, std::string> users;
 
     auto clone() const -> FieldBindings;
     void Update(const FieldBindings& other);

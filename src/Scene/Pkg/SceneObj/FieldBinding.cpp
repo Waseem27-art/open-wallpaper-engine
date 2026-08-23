@@ -103,6 +103,7 @@ auto FieldBindings::clone() const -> FieldBindings {
         (void)result.scriptproperties.insert(field->clone(), properties->clone());
     });
     for (const auto& [field, script] : scripts) result.scripts[field] = script.clone();
+    result.users = users;
     return result;
 }
 
@@ -113,6 +114,7 @@ void FieldBindings::Update(const FieldBindings& other) {
         (void)scriptproperties.insert(field->clone(), properties->clone());
     });
     for (const auto& [field, script] : other.scripts) scripts[field] = script.clone();
+    for (const auto& [field, user] : other.users) users[field] = user;
 }
 
 std::size_t AbsorbFieldBinding(std::string_view field, const owe::Json& field_value,
@@ -132,6 +134,13 @@ std::size_t AbsorbFieldBinding(std::string_view field, const owe::Json& field_va
             ::alloc::string::String::make(rstd::cppstd::as_str(field).unwrap()),
             (*properties)->clone());
         ++count;
+    }
+    if (auto user = field_value.get("user"_str); user.is_some()) {
+        auto key = (*user)->as_str();
+        if (key.is_some()) {
+            out.users[name] = rstd::cppstd::to_string(*key);
+            ++count;
+        }
     }
     auto script = field_value.get("script"_str);
     if (script.is_some() && (*script)->is_string()) {

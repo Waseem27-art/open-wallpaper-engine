@@ -272,6 +272,15 @@ Option<float> ScriptValueAsFloat(const script::ScriptValue& value) {
     return None();
 }
 
+Option<array<float, 2>> ScriptValueAsVec2(const script::ScriptValue& value) {
+    auto* vector = std::get_if<script::Vec2Value>(&value);
+    if (vector == nullptr) return None();
+    return Some(array<float, 2> {
+        static_cast<float>(vector->x),
+        static_cast<float>(vector->y),
+    });
+}
+
 Option<Vector3f> ScriptValueAsVec3(const script::ScriptValue& value, const Vector3f& current) {
     Vector3f next = current;
     if (auto* p = std::get_if<script::Vec3Value>(&value)) {
@@ -375,6 +384,19 @@ void WireFieldScripts(SceneParseContext& context, const Arc<SceneNode>& node_sp,
                       std::function<void(const script::ScriptValue&)> origin_apply,
                       std::function<void(const script::ScriptValue&)> scale_apply) {
     SceneNode* node = node_sp.as_ptr();
+
+    auto parallax_user = fb.users.find("parallaxDepth");
+    if (parallax_user != fb.users.end() && node->ID() != i32() &&
+        ! context.parallax_depth_user_binding_ids.contains(node->ID())) {
+        context.parallax_depth_user_binding_ids.insert(node->ID());
+        auto state = CopyableArcHold(context.uniform_state.clone());
+        context.scene->RegisterUserPropertyBinding(
+            String::make(as_str(parallax_user->second).unwrap()),
+            Box<dyn<FnMut<void(ref<Json>)>>>::make(
+                [state, object_id = node->ID()](ref<Json> property) mutable {
+                    (void)state.value->ApplyObjectParallaxDepth(object_id, *property);
+                }));
+    }
     if (fb.scripts.empty()) return;
     auto& ss = EnsureScriptScene(context);
     auto& rt = ss.runtime();
@@ -386,6 +408,7 @@ void WireFieldScripts(SceneParseContext& context, const Arc<SceneNode>& node_sp,
         bool                        is_alpha     = false;
         bool                        is_color     = false;
         bool                        is_volume    = false;
+        bool                        is_parallax  = false;
         if (field == "origin") {
             tgt  = script::NodeTransformTarget::Translate;
             kind = script::FieldKind::Vec3;
@@ -410,6 +433,9 @@ void WireFieldScripts(SceneParseContext& context, const Arc<SceneNode>& node_sp,
         } else if (field == "volume") {
             kind      = script::FieldKind::Scalar;
             is_volume = true;
+        } else if (field == "parallaxDepth") {
+            kind        = script::FieldKind::Vec2;
+            is_parallax = true;
         } else {
             // text/rate/intensity/... are wired elsewhere or not yet supported.
             continue;
@@ -428,7 +454,15 @@ void WireFieldScripts(SceneParseContext& context, const Arc<SceneNode>& node_sp,
             ss.AddActuator({ fs, script::MakeNodeColorApply(node_sp.clone()) });
         else if (is_volume)
             ss.AddActuator({ fs, script::MakeNodeVolumeApply(node_sp.clone()) });
-        else if (field == "origin" && origin_apply)
+        else if (is_parallax) {
+            auto state = CopyableArcHold(context.uniform_state.clone());
+            ss.AddActuator(
+                { fs, [state, object_id = node->ID()](const script::ScriptValue& value) mutable {
+                     auto depth = ScriptValueAsVec2(value);
+                     if (depth.is_some())
+                         (void)state.value->SetObjectParallaxDepth(object_id, *depth);
+                 } });
+        } else if (field == "origin" && origin_apply)
             ss.AddActuator({ fs, origin_apply });
         else if (field == "scale" && scale_apply)
             ss.AddActuator({ fs, scale_apply });

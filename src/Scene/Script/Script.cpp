@@ -36,6 +36,7 @@ FieldKind GuessFieldKind(std::string_view field) {
     // Vec3 (position-like) fields.
     if (field == "origin" || field == "scale" || field == "angles" || field == "spriteoffset")
         return FieldKind::Vec3;
+    if (field == "parallaxDepth") return FieldKind::Vec2;
     // Color (rgb) fields.
     if (field == "color" || field == "colorn" || field == "Bg color" || field == "Bar Color" ||
         field == "Inner Color" || field == "Outer Color" || field == "Color 1" ||
@@ -45,7 +46,7 @@ FieldKind GuessFieldKind(std::string_view field) {
     // erroring; the actuator side ignores the result for MVP scope.
     if (field == "text") return FieldKind::String;
     // Everything else is a scalar: alpha, rate, intensity, fov, volume,
-    // parallaxDepth, percentage, brightness, saturation, ... .
+    // percentage, brightness, saturation, ... .
     return FieldKind::Scalar;
 }
 
@@ -144,6 +145,11 @@ ScriptValue CoerceReturn(JSContext* ctx, JSValue ret, FieldKind kind) {
         } else if (JS_IsObject(ret)) {
             read_field(ret, "x", v.x);
             read_field(ret, "y", v.y);
+        } else if (JS_IsNumber(ret)) {
+            double scalar = 0.0;
+            if (JS_ToFloat64(ctx, &scalar, ret) < 0 || ! IsFinite(scalar)) return {};
+            v.x = scalar;
+            v.y = scalar;
         } else {
             return {};
         }
@@ -294,8 +300,8 @@ JSValue ResolveConfigValue(JSContext* ctx, const Json& v) { return JsonToJs(ctx,
 // `init(value)` expects, given the bound field kind. Audio-response,
 // parallax, and color scripts all assume `value` is already a Vec2/Vec3,
 // not a raw string or array.
-//   - Numbers: passthrough for scalar; for Vec3 we splat (matching WE's
-//     "uniform scale" behaviour observed in the corpus).
+//   - Numbers: passthrough for scalar; for Vec2/Vec3 we splat (matching WE's
+//     uniform vector behaviour observed in the corpus).
 //   - Strings: WE serialises vec values as space-separated floats —
 //     "1.0 2.0 3.0" → Vec3(1,2,3). Arrays accept the same shape.
 //   - Arrays / objects with x,y[,z]: construct a Vec2 / Vec3.

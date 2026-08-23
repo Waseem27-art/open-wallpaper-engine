@@ -166,6 +166,8 @@ struct SceneParseContext {
     Vec<i32>                    node_id_order;
     HashMap<i32, std::uint64_t> script_initialization_orders;
     HashMap<i32, Json>          initial_layer_configs;
+    HashSet<i32>                parallax_depth_user_binding_ids;
+    HashSet<i32>                ride_parent_parallax_ids;
 
     i32                             next_synthetic_object_id { -1 };
     Vec<owe::script::FieldScript*>  registered_asset_scripts;
@@ -208,6 +210,7 @@ auto EnsureScriptScene(SceneParseContext&) -> script::ScriptScene&;
 void SetScriptInitializationOrder(SceneParseContext&, script::FieldScript&, const SceneNode*);
 void TrackRegisteredAssets(SceneParseContext&, script::FieldScript*);
 auto ScriptValueAsFloat(const script::ScriptValue&) -> Option<float>;
+auto ScriptValueAsVec2(const script::ScriptValue&) -> Option<array<float, 2>>;
 auto ScriptValueAsVec3(const script::ScriptValue&, const Eigen::Vector3f&)
     -> Option<Eigen::Vector3f>;
 void WireFieldScripts(SceneParseContext&, const Arc<SceneNode>&, const wpscene::FieldBindings&,
