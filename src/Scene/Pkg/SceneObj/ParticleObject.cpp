@@ -342,6 +342,8 @@ ParticleObject ParticleObject::Clone() const {
     out.particlesrc      = particlesrc.clone();
     out.controlpoint     = controlpoint;
     out.visible_user_key = visible_user_key;
+
+    out.parallaxDepthAuthored = parallaxDepthAuthored;
     return out;
 }
 
@@ -355,7 +357,7 @@ bool ParticleObject::FromJson(const owe::Json& json, fs::VFS& vfs, SceneVersion 
     owe::GetJsonValue(json, "origin", origin);
     owe::GetJsonValue(json, "angles", angles);
     owe::GetJsonValue(json, "scale", scale);
-    owe::GetJsonValue(json, "parallaxDepth", parallaxDepth, false);
+    ReadParallaxDepth(json, parallaxDepth, parallaxDepthAuthored);
 
     if (auto value = json.get("instanceoverride"_str); value.is_some() && ! (*value)->is_null()) {
         instanceoverride.FromJosn(**value);

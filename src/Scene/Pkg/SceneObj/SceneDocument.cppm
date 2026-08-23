@@ -7,6 +7,7 @@ import :field_binding;
 import :visibility_binding;
 
 using namespace rstd::prelude;
+using namespace rstd::literals;
 
 export namespace owe
 
@@ -14,6 +15,24 @@ export namespace owe
 
 namespace wpscene
 {
+
+// Omitted parallaxDepth uses 1.0. Child layers follow the unparented ancestor.
+inline constexpr std::array<float, 2> kDefaultParallaxDepth { 1.0f, 1.0f };
+
+inline bool JsonHasParallaxDepth(const owe::Json& json) {
+    auto member = json.get("parallaxDepth"_str);
+    return member.is_some() && ! (*member)->is_null();
+}
+
+inline void ReadParallaxDepth(const owe::Json& json, std::array<float, 2>& depth, bool& authored) {
+    authored = JsonHasParallaxDepth(json);
+    depth    = kDefaultParallaxDepth;
+    if (authored) (void)owe::GetJsonValue(json, "parallaxDepth", depth, false);
+}
+
+inline bool IsZeroParallaxDepth(const std::array<float, 2>& depth) {
+    return depth[0] * depth[0] + depth[1] * depth[1] <= 1e-12f;
+}
 
 // pkg container version (the "PKGV00xx" stamp at the head of scene.pkg).
 // Spans 1..23 in the live corpus. Scene JSON fields are read according to
@@ -76,8 +95,8 @@ public:
     bool                 camerafade { false };
     bool                 camerapreview { false };
     bool                 cameraparallax { false };
-    float                cameraparallaxamount { 0.0f };
-    float                cameraparallaxdelay { 0.0f };
+    float                cameraparallaxamount { 0.5f };
+    float                cameraparallaxdelay { 0.1f };
     float                cameraparallaxmouseinfluence { 0.0f };
     bool                 isOrtho { false };
     Orthogonalprojection orthogonalprojection { i32(1920), i32(1080) };

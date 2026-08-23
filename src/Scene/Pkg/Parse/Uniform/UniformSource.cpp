@@ -1,5 +1,8 @@
 module;
 
+#include <algorithm>
+#include <cmath>
+
 module wescene.pkg.parse;
 import eigen;
 import owe.scene_audio_response;
@@ -191,15 +194,20 @@ auto BindEntries(mut_ref<dyn<UniformBindingSink>>            sink,
 
 } // namespace
 
+void UniformNodeConfigDraft::SetParallaxContract(array<float, 2> depth, i32 owner) {
+    object_id      = owner;
+    parallax_depth = depth;
+}
+
 auto UniformNodeConfigDraft::Clone() const -> UniformNodeConfigDraft {
     UniformNodeConfigDraft result {
-        .configured                     = configured,
-        .parallax_depth                 = parallax_depth,
-        .propagated_parallax_depth      = propagated_parallax_depth,
-        .propagate_parallax_to_children = propagate_parallax_to_children,
-        .use_camera_eye_position        = use_camera_eye_position,
-        .eye_position_override          = eye_position_override,
-        .vertices_in_world_space        = vertices_in_world_space,
+        .configured              = configured,
+        .object_id               = object_id,
+        .parallax_depth          = parallax_depth,
+        .ride_parent_parallax    = ride_parent_parallax,
+        .use_camera_eye_position = use_camera_eye_position,
+        .eye_position_override   = eye_position_override,
+        .vertices_in_world_space = vertices_in_world_space,
         .effect_projection_node =
             effect_projection_node.is_some() ? Some((*effect_projection_node).clone()) : None(),
         .effect_projection_size = effect_projection_size,
@@ -222,7 +230,18 @@ auto UniformCameraResolver::Resolve(const SceneNode& node) const -> Option<mut_r
 }
 
 void UniformSceneState::SetNodeState(SceneNodeId id, Arc<UniformNodeState> state) {
-    (void)m_nodes_by_address.insert(state->node.as_ptr().as_raw_ptr(), state.clone());
+    (void)m_nodes_by_address.insert(rstd::addressof(*state->node), state.clone());
+    if (state->object_id != i32()) {
+        if (auto current = m_object_parallax_depths.get(state->object_id); current.is_some()) {
+            state->parallax_depth = **current;
+        }
+        auto owners = m_nodes_by_object.get_mut(state->object_id);
+        if (owners.is_none()) {
+            (void)m_nodes_by_object.insert(state->object_id, Vec<Arc<UniformNodeState>>::make());
+            owners = m_nodes_by_object.get_mut(state->object_id);
+        }
+        (*owners)->push(state.clone());
+    }
     (void)m_nodes.insert(Key(id), rstd::move(state));
 }
 
@@ -233,43 +252,138 @@ bool UniformSceneState::SetEffectProjectionSize(SceneNodeId id, rstd::array<floa
     return true;
 }
 
-auto UniformSceneState::ResolveParallaxState(const UniformNodeState& state) const
-    -> const UniformNodeState& {
-    auto* resolved = rstd::addressof(state);
-    for (auto* parent = state.node->Parent(); parent != nullptr; parent = parent->Parent()) {
-        auto found = m_nodes_by_address.get(parent);
-        if (found.is_none()) continue;
-        auto& candidate = ***found;
-        if (! candidate.propagate_parallax_to_children) break;
-        resolved = rstd::addressof(candidate);
+bool UniformSceneState::SetObjectParallaxDepth(i32 object_id, array<float, 2> depth) {
+    if (auto current = m_object_parallax_depths.get_mut(object_id); current.is_some()) {
+        **current = depth;
+    } else {
+        (void)m_object_parallax_depths.insert(object_id, depth);
     }
-    return *resolved;
+    auto states = m_nodes_by_object.get_mut(object_id);
+    if (states.is_none()) return true;
+
+    // A logical layer may own a world node, private effect writers, and a detached final writer.
+    // Updating the owner group atomically keeps every pass on the same depth revision.
+    for (usize index {}; index < (*states)->len(); ++index) {
+        (**states)[index]->parallax_depth = depth;
+    }
+    return true;
+}
+
+bool UniformSceneState::ApplyObjectParallaxDepth(i32 object_id, const Json& property) {
+    const auto&     value = SceneUserPropertyPayload(property);
+    array<float, 2> depth {};
+    if (owe::GetJsonValue(value, depth)) return SetObjectParallaxDepth(object_id, depth);
+
+    auto scalar = UserScalar(property);
+    if (scalar.is_none()) return false;
+    return SetObjectParallaxDepth(object_id, { *scalar, *scalar });
+}
+
+auto UniformSceneState::FindNodeState(const SceneNode* node) const -> const UniformNodeState* {
+    if (node == nullptr) return nullptr;
+    auto found = m_nodes_by_address.get(node);
+    if (found.is_none()) return nullptr;
+    return rstd::addressof(***found);
 }
 
 void UniformSceneState::SetPointerInput(double x, double y) {
-    const auto now            = rstd::time::Instant::now();
-    const auto elapsed        = (now - m_last_pointer_input_time).as_secs_f64();
-    m_pointer_delayed_time    = std::max(0.0, m_pointer_delayed_time - elapsed);
-    m_pointer_input           = { static_cast<float>(x), static_cast<float>(y) };
-    m_last_pointer_input_time = now;
+    m_pointer_input = { static_cast<float>(x), static_cast<float>(y) };
 }
-
-void UniformSceneState::SetPointerDelay(float delay) { m_pointer_delay = std::max(0.0f, delay); }
 
 void UniformSceneState::SetAudioSpectrum(const scene_audio::Buffers& buffers) {
     m_inputs.audio = buffers;
 }
 
-void UniformSceneState::Advance(const SceneFrame& frame) {
-    const auto delay       = static_cast<double>(m_pointer_delay);
-    m_pointer_delayed_time = std::min(m_pointer_delayed_time + frame.delta.to_primitive(), delay);
-    const auto amount      = delay > 0.0 ? m_pointer_delayed_time / delay : 1.0;
+auto UniformSceneState::LogicalParallaxState(const UniformNodeState& state) const
+    -> const UniformNodeState* {
+    const UniformNodeState* current = rstd::addressof(state);
+    if (state.effect_projection_node.is_some()) {
+        if (auto* found = FindNodeState(rstd::addressof(**state.effect_projection_node));
+            found != nullptr) {
+            current = found;
+        }
+    } else if (state.object_id != i32()) {
+        auto group = m_nodes_by_object.get(state.object_id);
+        if (group.is_some()) {
+            for (usize index {}; index < (*group)->len(); ++index) {
+                const auto& candidate = (**group)[index];
+                if (candidate->node->Camera().empty()) {
+                    current = rstd::addressof(*candidate);
+                    break;
+                }
+            }
+        }
+    }
+    if (current == rstd::addressof(state) && ! state.node->Camera().empty()) {
+        for (auto* parent = state.node->Parent(); parent != nullptr; parent = parent->Parent()) {
+            if (auto* found = FindNodeState(parent);
+                found != nullptr && found->node->Camera().empty()) {
+                current = found;
+                break;
+            }
+        }
+    }
 
+    // Child layers share the unparented ancestor's parallaxDepth.
+    auto remaining = m_nodes.len();
+    while (current != nullptr && remaining != usize()) {
+        auto* next = ParentParallaxState(*current);
+        if (next == nullptr) break;
+        --remaining;
+        current = next;
+    }
+    return current;
+}
+
+auto UniformSceneState::ParentParallaxState(const UniformNodeState& current) const
+    -> const UniformNodeState* {
+    for (auto* parent = current.node->Parent(); parent != nullptr; parent = parent->Parent()) {
+        if (auto* found = FindNodeState(parent); found != nullptr) return found;
+    }
+    return nullptr;
+}
+
+auto UniformSceneState::ComputeParallaxOffset(const UniformNodeState& state,
+                                              const SceneCamera&      camera,
+                                              SceneRenderViewKind     view) const
+    -> rstd::array<float, 2> {
+    const auto* source = LogicalParallaxState(state);
+    source->node->UpdateTrans();
+    const array<float, 2> depth_values = source->parallax_depth;
+    const Vector3f node_position       = source->node->ModelTrans().block<3, 1>(0, 3).cast<float>();
+    const Vector2f depth { depth_values[usize(0)], depth_values[usize(1)] };
+    const auto     ortho_values = Ortho();
+    const Vector2f ortho { ortho_values[usize(0)], ortho_values[usize(1)] };
+    const Vector2f pointer(Inputs().pointer.data());
+    const Vector2f pointer_offset = Scaling(1.0f, -1.0f) * (Vector2f { 0.5f, 0.5f } - pointer);
+    const Vector2f mouse = pointer_offset.cwiseProduct(ortho) * CameraParallax().mouse_influence;
+    const auto     camera_position = camera.GetPosition(view).cast<float>();
+    const Vector2f offset =
+        (node_position.head<2>() - camera_position.head<2>() + mouse).cwiseProduct(depth) *
+        CameraParallax().amount;
+    return { offset.x(), offset.y() };
+}
+
+void UniformSceneState::Advance(const SceneFrame& frame) {
     m_inputs.pointer_last = m_inputs.pointer;
+    const double delay    = std::max(0.0, static_cast<double>(m_camera_parallax.delay));
+    if (delay <= 0.0) {
+        m_inputs.pointer = m_pointer_input;
+        return;
+    }
+
+    // Delay 0 snaps. Small delay stays a follow; the rate reaches 0 at 3.
+    // Delay 2 is still a follow, not a two-second time constant.
+    constexpr double kDelayRange   = 3.0;
+    constexpr double kResponseRate = 10.0;
+    const double     rate          = kResponseRate * std::max(0.0, 1.0 - delay / kDelayRange);
+    if (rate <= 0.0) return;
+
+    const double t = std::min(1.0, rate * std::max(0.0, frame.delta.to_primitive()));
     for (usize index {}; index < m_inputs.pointer.len(); ++index) {
         const auto current = m_inputs.pointer[index];
         m_inputs.pointer[index] =
-            static_cast<float>(current + (m_pointer_input[index] - current) * amount);
+            static_cast<float>(current + (m_pointer_input[index] - current) * t);
     }
 }
 
@@ -282,7 +396,6 @@ void UniformSceneState::ApplyUserProperty(std::string_view field, const Json& pr
         m_camera_parallax.amount = *value;
     } else if (field == "cameraparallaxdelay") {
         m_camera_parallax.delay = *value;
-        SetPointerDelay(*value);
     } else if (field == "cameraparallaxmouseinfluence") {
         m_camera_parallax.mouse_influence = *value;
     } else if (field == "camerashake") {
@@ -396,23 +509,16 @@ auto TransformUniformSource::Evaluate(ref<dyn<UniformUpdateContext>> context,
         auto        attached = camera.GetAttachedNode();
         const bool  own_image_effect =
             attached.is_some() && (*attached)->HasLayer() && *attached == m_node->node.as_ptr();
-        if (node.Camera() != "effect" && parallax.enable && ! own_image_effect) {
-            const auto& parallax_state = m_state->ResolveParallaxState(*m_node);
-            parallax_state.node->UpdateTrans();
-            const Vector3f node_position =
-                parallax_state.node->ModelTrans().block<3, 1>(0, 3).cast<float>();
-            const Vector2f depth(parallax_state.propagated_parallax_depth.data());
-            const auto     ortho_values = m_state->Ortho();
-            const Vector2f ortho { ortho_values[usize(0)], ortho_values[usize(1)] };
-            const Vector2f pointer(m_state->Inputs().pointer.data());
-            const Vector2f pointer_offset =
-                Scaling(1.0f, -1.0f) * (Vector2f { 0.5f, 0.5f } - pointer);
-            const Vector2f mouse = pointer_offset.cwiseProduct(ortho) * parallax.mouse_influence;
-            const auto     camera_position = camera.GetPosition(render_view).cast<float>();
-            const Vector2f shift =
-                (node_position.head<2>() - camera_position.head<2>() + mouse).cwiseProduct(depth) *
-                parallax.amount;
-            model = Affine3d(Translation3d(Vector3d(shift.x(), shift.y(), 0.0))).matrix() * model;
+        const bool apply_model_parallax =
+            node.Camera() != "effect" && parallax.enable && ! own_image_effect;
+        array<float, 2> shift {};
+        if (apply_model_parallax) {
+            shift = m_state->ComputeParallaxOffset(*m_node, camera, render_view);
+            if (shift[usize(0)] != 0.0f || shift[usize(1)] != 0.0f) {
+                model = Affine3d(Translation3d(Vector3d(shift[usize(0)], shift[usize(1)], 0.0)))
+                            .matrix() *
+                        model;
+            }
         }
 
         model *= node.GeometryTransform();
@@ -458,6 +564,15 @@ auto TransformUniformSource::Evaluate(ref<dyn<UniformUpdateContext>> context,
                                 static_cast<double>(m_node->effect_projection_size[usize(1)]) * 0.5,
                                 1.0))
                             .matrix();
+                }
+                // Screen compose can bind g_EffectModel / g_LayerModel instead of
+                // g_Model. Keep those matrices on the same shift as the layer.
+                if (apply_model_parallax && (shift[usize(0)] != 0.0f || shift[usize(1)] != 0.0f)) {
+                    const auto parallax_model =
+                        Affine3d(Translation3d(Vector3d(shift[usize(0)], shift[usize(1)], 0.0)))
+                            .matrix();
+                    layer_model  = parallax_model * layer_model;
+                    effect_model = parallax_model * effect_model;
                 }
             }
             writer.Write(Output::LayerModel, ShaderValue::fromMatrix(layer_model));

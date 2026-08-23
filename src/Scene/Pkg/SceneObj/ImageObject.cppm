@@ -87,7 +87,8 @@ public:
     std::array<float, 3>     scale { 1.0f, 1.0f, 1.0f };
     std::array<float, 3>     angles { 0.0f, 0.0f, 0.0f };
     std::array<float, 2>     size { 2.0f, 2.0f };
-    std::array<float, 2>     parallaxDepth { 0.0f, 0.0f };
+    std::array<float, 2>     parallaxDepth { kDefaultParallaxDepth };
+    bool                     parallaxDepthAuthored { false };
     std::array<float, 3>     color { 1.0f, 1.0f, 1.0f };
     i32                      colorBlendMode { 0 };
     float                    alpha { 1.0f };
@@ -158,6 +159,8 @@ public:
     std::array<float, 3>     origin { 0.0f, 0.0f, 0.0f };
     std::array<float, 3>     scale { 1.0f, 1.0f, 1.0f };
     std::array<float, 3>     angles { 0.0f, 0.0f, 0.0f };
+    std::array<float, 2>     parallaxDepth { kDefaultParallaxDepth };
+    bool                     parallaxDepthAuthored { false };
     bool                     visible { true };
     std::vector<ImageEffect> effects;
 

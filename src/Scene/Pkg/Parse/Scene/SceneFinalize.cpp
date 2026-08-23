@@ -47,13 +47,14 @@ bool RegisterUniformNodeSources(Scene& scene, const Arc<UniformSceneState>& unif
     auto node_id = scene.ResourceIndex().nodeId(*node);
     if (node_id.is_none()) return false;
 
-    auto state = Arc<UniformNodeState>::make(node.clone(), camera_resolver.clone());
-    state->propagated_parallax_depth      = config.propagated_parallax_depth;
-    state->propagate_parallax_to_children = config.propagate_parallax_to_children;
-    state->use_camera_eye_position        = config.use_camera_eye_position;
-    state->eye_position_override          = config.eye_position_override;
-    state->vertices_in_world_space        = config.vertices_in_world_space;
-    state->effect_projection_size         = config.effect_projection_size;
+    auto state            = Arc<UniformNodeState>::make(node.clone(), camera_resolver.clone());
+    state->object_id      = config.object_id;
+    state->parallax_depth = config.parallax_depth;
+    state->ride_parent_parallax    = config.ride_parent_parallax;
+    state->use_camera_eye_position = config.use_camera_eye_position;
+    state->eye_position_override   = config.eye_position_override;
+    state->vertices_in_world_space = config.vertices_in_world_space;
+    state->effect_projection_size  = config.effect_projection_size;
     if (config.effect_projection_node.is_some())
         state->effect_projection_node = Some((*config.effect_projection_node).clone());
     uniform_state->SetNodeState(*node_id, state.clone());
@@ -111,7 +112,8 @@ void FinalizeUniformSources(SceneParseContext& context) {
     auto ortho = scene.Ortho();
     context.uniform_state->SetOrtho(static_cast<float>(ortho[usize()].to_primitive()),
                                     static_cast<float>(ortho[usize(1)].to_primitive()));
-    scene.Runtime().RegisterSystem(UniformRuntimeSystem { context.uniform_state.clone() });
+    scene.Runtime().RegisterSystem(UniformRuntimeSystem { context.uniform_state.clone() },
+                                   SceneRuntimeSchedule::BeforeRender);
 
     auto registrar = dyn<UniformSourceRegistrar>::from_ref(scene);
     auto writer    = dyn<UniformAttachmentWriter>::from_ref(scene);
@@ -181,6 +183,10 @@ void FinalizeUniformSources(SceneParseContext& context) {
     }
 
     for (auto& entry : context.uniform_configs) {
+        if (entry.config.object_id != i32() &&
+            context.ride_parent_parallax_ids.contains(entry.config.object_id)) {
+            entry.config.ride_parent_parallax = true;
+        }
         (void)RegisterUniformNodeSources(
             scene, context.uniform_state, camera_resolver, entry.node, entry.config);
     }
@@ -343,6 +349,7 @@ Box<Scene> FinalizeScene(SceneParseContext& context) {
             const auto& puppet           = **parent_ref->puppet;
             auto        attachment_index = puppet.attachmentIndex(ref.attachment.as_str());
             if (attachment_index.is_some()) {
+                context.ride_parent_parallax_ids.insert(id);
                 auto apply_bind_offset = [&]() {
                     auto anchor = puppet.attachmentBindTransform(*attachment_index);
                     if (anchor.is_none()) return;

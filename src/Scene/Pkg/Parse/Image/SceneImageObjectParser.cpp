@@ -220,13 +220,10 @@ void ParseImageObjImpl(SceneParseContext& context, wpscene::ImageObject& img_obj
     if (color_blend_uses_layer_material && ! hasEffect) ApplyImageColorBlend(image_wpmat, wpimgobj);
     ApplyUserTextureBindings(context, image_wpmat);
     {
-        svData.propagate_parallax_to_children = ! wpimgobj.disablepropagation;
-        svData.propagated_parallax_depth = { wpimgobj.parallaxDepth[0], wpimgobj.parallaxDepth[1] };
-        if (! hasEffect) {
-            svData.parallax_depth = { wpimgobj.parallaxDepth[0], wpimgobj.parallaxDepth[1] };
-            if (puppet.is_some() && has_bones) {
-                MdlParser::AddPuppetShaderInfo(shaderInfo, **puppet);
-            }
+        svData.SetParallaxContract({ wpimgobj.parallaxDepth[0], wpimgobj.parallaxDepth[1] },
+                                   wpimgobj.id);
+        if (! hasEffect && puppet.is_some() && has_bones) {
+            MdlParser::AddPuppetShaderInfo(shaderInfo, **puppet);
         }
 
         baseConstSvs[rstd::cppstd::to_string(G_COLOR4)] = std::array<float, 4> {
@@ -811,7 +808,8 @@ void ParseImageObjImpl(SceneParseContext& context, wpscene::ImageObject& img_obj
                     ShaderValue::fromMatrix(Eigen::Matrix4f::Identity());
                 SceneMaterial          material;
                 UniformNodeConfigDraft svData;
-                svData.propagate_parallax_to_children = ! wpimgobj.disablepropagation;
+                svData.SetParallaxContract({ wpimgobj.parallaxDepth[0], wpimgobj.parallaxDepth[1] },
+                                           wpimgobj.id);
                 SceneShaderValueAnimationMap final_quad_shader_values;
                 auto effect_result = BuildMaterial(vfs,
                                                    *context.shader_cache,
@@ -831,11 +829,7 @@ void ParseImageObjImpl(SceneParseContext& context, wpscene::ImageObject& img_obj
                 LoadConstvalue(material, wpmat, wpEffShaderInfo, &final_quad_shader_values);
                 auto spMesh = std::make_shared<SceneMesh>();
                 {
-                    svData.propagated_parallax_depth = { wpimgobj.parallaxDepth[0],
-                                                         wpimgobj.parallaxDepth[1] };
-                    svData.parallax_depth            = { wpimgobj.parallaxDepth[0],
-                                                         wpimgobj.parallaxDepth[1] };
-                    svData.effect_projection_node    = Some(spImgNode.clone());
+                    svData.effect_projection_node = Some(spImgNode.clone());
                     svData.effect_projection_size = { rstd::as_cast<float>(effect_extent[usize()]),
                                                       rstd::as_cast<float>(
                                                           effect_extent[usize(1)]) };
@@ -986,11 +980,8 @@ void ParseImageObjImpl(SceneParseContext& context, wpscene::ImageObject& img_obj
                 shader_info.baseConstSvs = NeutralColorUniforms(baseConstSvs);
                 SceneMaterial          material;
                 UniformNodeConfigDraft uniform_config;
-                uniform_config.propagate_parallax_to_children = ! wpimgobj.disablepropagation;
-                uniform_config.propagated_parallax_depth      = { wpimgobj.parallaxDepth[0],
-                                                                  wpimgobj.parallaxDepth[1] };
-                uniform_config.parallax_depth                 = { wpimgobj.parallaxDepth[0],
-                                                                  wpimgobj.parallaxDepth[1] };
+                uniform_config.SetParallaxContract(
+                    { wpimgobj.parallaxDepth[0], wpimgobj.parallaxDepth[1] }, wpimgobj.id);
                 auto material_result = BuildMaterial(vfs,
                                                      *context.shader_cache,
                                                      context.shader_environment,
@@ -1068,11 +1059,8 @@ void ParseImageObjImpl(SceneParseContext& context, wpscene::ImageObject& img_obj
                     wpFinalShaderInfo.baseConstSvs = NeutralColorUniforms(baseConstSvs);
                     SceneMaterial          finalMaterial;
                     UniformNodeConfigDraft finalSvData;
-                    finalSvData.propagate_parallax_to_children = ! wpimgobj.disablepropagation;
-                    finalSvData.propagated_parallax_depth      = { wpimgobj.parallaxDepth[0],
-                                                                   wpimgobj.parallaxDepth[1] };
-                    finalSvData.parallax_depth                 = { wpimgobj.parallaxDepth[0],
-                                                                   wpimgobj.parallaxDepth[1] };
+                    finalSvData.SetParallaxContract(
+                        { wpimgobj.parallaxDepth[0], wpimgobj.parallaxDepth[1] }, wpimgobj.id);
                     auto final_result = BuildMaterial(vfs,
                                                       *context.shader_cache,
                                                       context.shader_environment,
@@ -1203,21 +1191,23 @@ void ParseShapeObj(SceneParseContext& context, wpscene::ShapeObject& shape_obj) 
     image.visible  = shape_obj.visible;
     image.material = last_effect->materials.back().clone();
     image.material.MergePass(last_effect->passes.back());
-    image.material.blending  = "additive";
-    image.effects            = rstd::move(shape_obj.effects);
-    image.nopadding          = true;
-    image.locktransforms     = shape_obj.locktransforms;
-    image.muteineditor       = shape_obj.muteineditor;
-    image.nointerpolation    = shape_obj.nointerpolation;
-    image.reflected          = shape_obj.reflected;
-    image.castshadow         = shape_obj.castshadow;
-    image.disablepropagation = shape_obj.disablepropagation;
-    image.parent             = shape_obj.parent;
-    image.attachment         = rstd::move(shape_obj.attachment);
-    image.dependencies       = rstd::move(shape_obj.dependencies);
-    image.field_bindings     = rstd::move(shape_obj.field_bindings);
-    image.visible_user       = rstd::move(shape_obj.visible_user);
-    image.visible_user_key   = rstd::move(shape_obj.visible_user_key);
+    image.material.blending     = "additive";
+    image.effects               = rstd::move(shape_obj.effects);
+    image.nopadding             = true;
+    image.locktransforms        = shape_obj.locktransforms;
+    image.muteineditor          = shape_obj.muteineditor;
+    image.nointerpolation       = shape_obj.nointerpolation;
+    image.reflected             = shape_obj.reflected;
+    image.castshadow            = shape_obj.castshadow;
+    image.disablepropagation    = shape_obj.disablepropagation;
+    image.parent                = shape_obj.parent;
+    image.attachment            = rstd::move(shape_obj.attachment);
+    image.dependencies          = rstd::move(shape_obj.dependencies);
+    image.field_bindings        = rstd::move(shape_obj.field_bindings);
+    image.visible_user          = rstd::move(shape_obj.visible_user);
+    image.visible_user_key      = rstd::move(shape_obj.visible_user_key);
+    image.parallaxDepth         = shape_obj.parallaxDepth;
+    image.parallaxDepthAuthored = shape_obj.parallaxDepthAuthored;
     ParseImageObjImpl(context,
                       image,
                       ImageParseGeometry {

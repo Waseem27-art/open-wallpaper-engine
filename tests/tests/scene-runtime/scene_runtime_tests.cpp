@@ -861,14 +861,15 @@ TEST(UniformSourceParallax, ParentPropagationSelectsAncestorConfiguration) {
     camera_resolver->Add(String::make("default"_str), camera.clone());
 
     auto parent_state = Arc<owe::UniformNodeState>::make(parent.clone(), camera_resolver.clone());
-    parent_state->propagated_parallax_depth      = { -1.56f, -0.79f };
-    parent_state->propagate_parallax_to_children = true;
+    parent_state->object_id      = i32(1);
+    parent_state->parallax_depth = { -1.56f, -0.79f };
     auto child_state = Arc<owe::UniformNodeState>::make(child.clone(), camera_resolver.clone());
-    child_state->propagated_parallax_depth      = { -1.12f, -1.36f };
-    child_state->propagate_parallax_to_children = true;
+    child_state->object_id      = i32(2);
+    child_state->parallax_depth = { 1.0f, 1.0f };
     auto effect_state = Arc<owe::UniformNodeState>::make(effect.clone(), camera_resolver.clone());
-    effect_state->propagated_parallax_depth      = { 0.0f, 0.0f };
-    effect_state->propagate_parallax_to_children = true;
+    effect_state->object_id              = i32(2);
+    effect_state->parallax_depth         = { 1.0f, 1.0f };
+    effect_state->effect_projection_node = Some(child.clone());
     state->SetNodeState({ .index = rstd::u32(1), .generation = rstd::u32(1) },
                         parent_state.clone());
     state->SetNodeState({ .index = rstd::u32(2), .generation = rstd::u32(1) }, child_state.clone());
@@ -891,17 +892,35 @@ TEST(UniformSourceParallax, ParentPropagationSelectsAncestorConfiguration) {
         };
     };
 
-    auto mvp             = capture_mvp();
-    auto expected_parent = expected_translation({ 1982.0f, 1053.0f }, { -1.56f, -0.79f });
+    auto mvp                = capture_mvp();
+    auto expected_inherited = expected_translation({ 1982.0f, 1053.0f }, { -1.56f, -0.79f });
     ASSERT_GT(mvp.size().to_primitive(), 13u);
-    EXPECT_NEAR(mvp[rstd::usize(12)], expected_parent.x(), 1e-5f);
-    EXPECT_NEAR(mvp[rstd::usize(13)], expected_parent.y(), 1e-5f);
+    EXPECT_NEAR(mvp[rstd::usize(12)], expected_inherited.x(), 1e-5f);
+    EXPECT_NEAR(mvp[rstd::usize(13)], expected_inherited.y(), 1e-5f);
 
-    parent_state->propagate_parallax_to_children = false;
-    mvp                                          = capture_mvp();
-    auto expected_child = expected_translation({ 1906.0f, 1050.0f }, { -1.12f, -1.36f });
-    EXPECT_NEAR(mvp[rstd::usize(12)], expected_child.x(), 1e-5f);
-    EXPECT_NEAR(mvp[rstd::usize(13)], expected_child.y(), 1e-5f);
+    child_state->parallax_depth = { 0.0f, 0.0f };
+    mvp                         = capture_mvp();
+    EXPECT_NEAR(mvp[rstd::usize(12)], expected_inherited.x(), 1e-5f);
+    EXPECT_NEAR(mvp[rstd::usize(13)], expected_inherited.y(), 1e-5f);
+
+    child_state->parallax_depth = { 0.5f, 0.5f };
+    mvp                         = capture_mvp();
+    EXPECT_NEAR(mvp[rstd::usize(12)], expected_inherited.x(), 1e-5f);
+    EXPECT_NEAR(mvp[rstd::usize(13)], expected_inherited.y(), 1e-5f);
+
+    parent_state->parallax_depth = { 0.0f, 0.0f };
+    child_state->parallax_depth  = { -0.7f, -0.7f };
+    mvp                          = capture_mvp();
+    auto expected_frozen         = expected_translation({ 1982.0f, 1053.0f }, { 0.0f, 0.0f });
+    EXPECT_NEAR(mvp[rstd::usize(12)], expected_frozen.x(), 1e-5f);
+    EXPECT_NEAR(mvp[rstd::usize(13)], expected_frozen.y(), 1e-5f);
+
+    parent_state->parallax_depth  = { 0.321f, 0.321f };
+    child_state->parallax_depth   = { 0.321f, 0.321f };
+    mvp                           = capture_mvp();
+    auto expected_parent_authored = expected_translation({ 1982.0f, 1053.0f }, { 0.321f, 0.321f });
+    EXPECT_NEAR(mvp[rstd::usize(12)], expected_parent_authored.x(), 1e-5f);
+    EXPECT_NEAR(mvp[rstd::usize(13)], expected_parent_authored.y(), 1e-5f);
 
     auto layer_camera =
         Arc<owe::SceneCamera>::make(owe::SceneCamera::MakeOrthographic(3840, 2160, -1.0, 1.0));
@@ -911,8 +930,7 @@ TEST(UniformSourceParallax, ParentPropagationSelectsAncestorConfiguration) {
     scene.RegisterCamera(String::make("layer"_str), layer_camera.clone());
     camera_resolver->Add(String::make("layer"_str), layer_camera.clone());
     effect->SetCamera("layer");
-    parent_state->propagate_parallax_to_children = true;
-    mvp                                          = capture_mvp();
+    mvp = capture_mvp();
     EXPECT_NEAR(mvp[rstd::usize(12)], 0.0f, 1e-5f);
     EXPECT_NEAR(mvp[rstd::usize(13)], 0.0f, 1e-5f);
 }

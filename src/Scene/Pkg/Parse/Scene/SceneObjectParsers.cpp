@@ -256,7 +256,6 @@ void InitContext(SceneParseContext& context, fs::VFS& vfs, const wpscene::SceneM
         cam_para.delay                          = sc.general.cameraparallaxdelay;
         cam_para.mouse_influence                = sc.general.cameraparallaxmouseinfluence;
         context.uniform_state->CameraParallax() = cam_para;
-        context.uniform_state->SetPointerDelay(cam_para.delay);
         for (const auto& [field, key] : sc.general.user_bindings) {
             if (field == "cameraparallax" || field == "cameraparallaxamount" ||
                 field == "cameraparallaxdelay" || field == "cameraparallaxmouseinfluence") {
@@ -392,9 +391,9 @@ void ParseModelObjImpl(SceneParseContext& context, wpscene::ModelObject& model_o
     auto mesh = std::make_shared<SceneMesh>();
 
     UniformNodeConfigDraft svData;
-    svData.parallax_depth            = { model_obj.parallaxDepth[0], model_obj.parallaxDepth[1] };
-    svData.propagated_parallax_depth = { model_obj.parallaxDepth[0], model_obj.parallaxDepth[1] };
-    svData.use_camera_eye_position   = true;
+    svData.SetParallaxContract({ model_obj.parallaxDepth[0], model_obj.parallaxDepth[1] },
+                               model_obj.id);
+    svData.use_camera_eye_position = true;
     if (context.orthographic_scene) {
         svData.eye_position_override = Some(array<float, 3> {
             static_cast<float>(context.ortho_w.to_primitive()) * 0.5f,
@@ -649,13 +648,9 @@ void ParseContainerObj(SceneParseContext& context, const wpscene::ContainerObjec
                                       Vector3f(obj.angles.data()),
                                       obj.name);
     node->ID() = i32(obj.id);
-    if (obj.parallax_depth[0] != 0.0f || obj.parallax_depth[1] != 0.0f || obj.disable_propagation) {
-        UniformNodeConfigDraft uniform_config;
-        uniform_config.propagate_parallax_to_children = ! obj.disable_propagation;
-        uniform_config.parallax_depth            = { obj.parallax_depth[0], obj.parallax_depth[1] };
-        uniform_config.propagated_parallax_depth = { obj.parallax_depth[0], obj.parallax_depth[1] };
-        SetUniformConfig(context, node, rstd::move(uniform_config));
-    }
+    UniformNodeConfigDraft uniform_config;
+    uniform_config.SetParallaxContract({ obj.parallax_depth[0], obj.parallax_depth[1] }, obj.id);
+    SetUniformConfig(context, node, rstd::move(uniform_config));
     if (! obj.visible) (void)context.scene->SetNodeVisible(*node, false);
     if (! obj.visible_user.empty())
         node->SetVisibleUserBinding(ToSceneUserVisibilityBinding(obj.visible_user));
