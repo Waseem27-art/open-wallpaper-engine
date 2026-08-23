@@ -1882,6 +1882,50 @@ TEST(ScriptScene, CameraTransformsRoundTripThroughSceneOwner) {
     EXPECT_DOUBLE_EQ(LastScalar(script), 345.0);
 }
 
+TEST(ScriptScene, OrthographicCameraTransformsUseAttachedNodeCoordinates) {
+    owe::Scene scene;
+    auto       camera_node = Arc<owe::SceneNode>::make(Eigen::Vector3f { 1920.0f, 1080.0f, 0.0f },
+                                                       Eigen::Vector3f::Ones(),
+                                                       Eigen::Vector3f::Zero());
+    auto       camera      = Arc<owe::SceneCamera>::make(
+        owe::SceneCamera::MakeOrthographic(3840.0, 2160.0, -5000.0, 5000.0));
+    camera->AttatchNode(camera_node.as_ptr());
+    scene.RegisterCamera(String::make("main"_str), rstd::move(camera));
+    ASSERT_TRUE(scene.SetActiveCamera("main"_str));
+
+    JsRuntime rt;
+    rt.SetScene(&scene);
+    auto* script = rt.MakeFieldScript(
+        R"JS(
+            export function init() {
+                const camera = thisScene.getCameraTransforms();
+                camera.eye = new Vec3(10, 20, 0);
+                camera.center = new Vec3(10, 20, -1);
+                thisScene.setCameraTransforms(camera);
+            }
+            export function update() {
+                const camera = thisScene.getCameraTransforms();
+                return camera.eye.x * 100 + camera.eye.y;
+            }
+        )JS",
+        "test/orthographic_camera_attached_coordinates",
+        FieldKind::Scalar,
+        owe::MakeObject(),
+        owe::IntoJson(0));
+    ASSERT_NE(script, nullptr);
+
+    rt.SetSceneRoot(scene.RootMut().as_raw_ptr());
+    rt.TickAll();
+
+    auto active = scene.ActiveCamera();
+    ASSERT_TRUE(active.is_some());
+    auto world = (**active).Transforms();
+    EXPECT_TRUE(world.eye.isApprox(Eigen::Vector3d { 1930.0, 1100.0, 0.0 }));
+    EXPECT_TRUE(world.center.isApprox(Eigen::Vector3d { 1930.0, 1100.0, -1.0 }));
+    EXPECT_TRUE(world.up.isApprox(Eigen::Vector3d::UnitY()));
+    EXPECT_DOUBLE_EQ(LastScalar(script), 1020.0);
+}
+
 TEST(ScriptScene, CreateLayerRoutesConfigurationAndLayerCloneToFactory) {
     auto root  = Arc<owe::SceneNode>::make();
     auto owner = Arc<owe::SceneNode>::make(

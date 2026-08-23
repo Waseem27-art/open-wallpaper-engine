@@ -1134,6 +1134,8 @@ public:
     bool IsLookAt() const { return m_lookat; }
     auto Transforms() const -> SceneCameraTransforms;
     bool SetTransforms(const SceneCameraTransforms& transforms);
+    auto AuthoredTransforms() const -> SceneCameraTransforms;
+    bool SetAuthoredTransforms(const SceneCameraTransforms& transforms);
 
     Eigen::Vector3d GetPosition(SceneRenderViewKind view = SceneRenderViewKind::Primary) const;
     Eigen::Vector3d GetDirection() const;

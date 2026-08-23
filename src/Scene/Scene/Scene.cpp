@@ -1335,7 +1335,7 @@ auto Scene::ActiveCameraHandle() const -> Option<Arc<SceneCamera>> {
 auto Scene::ActiveCameraTransforms() const -> Option<SceneCameraTransforms> {
     auto camera = ActiveCamera();
     if (camera.is_none()) return None();
-    return Some((**camera).Transforms());
+    return Some((**camera).AuthoredTransforms());
 }
 
 bool Scene::SetActiveCameraTransforms(const SceneCameraTransforms& transforms) {
@@ -1343,7 +1343,7 @@ bool Scene::SetActiveCameraTransforms(const SceneCameraTransforms& transforms) {
     auto name = (*m_active_camera).clone();
     {
         auto camera = CameraMut(name.as_str());
-        if (camera.is_none() || ! (**camera).SetTransforms(transforms)) return false;
+        if (camera.is_none() || ! (**camera).SetAuthoredTransforms(transforms)) return false;
     }
     UpdateLinkedCamera(name.as_str());
     return true;

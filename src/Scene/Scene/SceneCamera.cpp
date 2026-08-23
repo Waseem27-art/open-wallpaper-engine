@@ -81,6 +81,28 @@ bool SceneCamera::SetTransforms(const SceneCameraTransforms& transforms) {
     return true;
 }
 
+auto SceneCamera::AuthoredTransforms() const -> SceneCameraTransforms {
+    auto transforms = Transforms();
+    if (m_perspective || ! m_node) return transforms;
+
+    const Matrix4d frame_inverse = NodeCameraFrame(*m_node).inverse();
+    transforms.eye               = (frame_inverse * transforms.eye.homogeneous()).head<3>();
+    transforms.center            = (frame_inverse * transforms.center.homogeneous()).head<3>();
+    transforms.up                = frame_inverse.block<3, 3>(0, 0) * transforms.up;
+    return transforms;
+}
+
+bool SceneCamera::SetAuthoredTransforms(const SceneCameraTransforms& transforms) {
+    if (m_perspective || ! m_node) return SetTransforms(transforms);
+
+    const Matrix4d frame = NodeCameraFrame(*m_node);
+    return SetTransforms(SceneCameraTransforms {
+        .eye    = (frame * transforms.eye.homogeneous()).head<3>(),
+        .center = (frame * transforms.center.homogeneous()).head<3>(),
+        .up     = frame.block<3, 3>(0, 0) * transforms.up,
+    });
+}
+
 Matrix4d SceneCamera::GetViewMatrix() {
     CalculateViewProjectionMatrix();
     return m_viewMat;
