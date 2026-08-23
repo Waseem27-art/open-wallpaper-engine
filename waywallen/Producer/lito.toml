@@ -38,6 +38,6 @@ visibility = "public"
 workspace = true
 visibility = "public"
 
-[external-dependencies.cmake.waywallen-bridge]
+[external-dependencies.pkg-config.waywallen-bridge]
 workspace = true
-targets = [{ name = "waywallen::bridge", visibility = "public" }]
+visibility = "public"

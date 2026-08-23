@@ -110,6 +110,9 @@ module = "fontconfig"
 [workspace.external-dependencies.pkg-config.freetype]
 module = "freetype2"
 
+[workspace.external-dependencies.pkg-config.waywallen-bridge]
+module = "waywallen-bridge"
+
 [workspace.external-sources.eigen]
 git = "https://gitlab.com/libeigen/eigen.git"
 rev = "bc3b39870ecb690a623a3f49149a358b95c5781d"
@@ -151,6 +154,3 @@ sha256 = "8909a79689eec7b23ed80084b69766952d44e00f9a345832951b32903f8a80a0"
 package = "CEF"
 source = "cef"
 adapter = "src/Web/cmake/CEF.cmake"
-
-[workspace.external-dependencies.cmake.waywallen-bridge]
-package = "waywallen-bridge"
