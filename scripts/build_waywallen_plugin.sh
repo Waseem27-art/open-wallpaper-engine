@@ -10,6 +10,7 @@ WAYWALLEN_REF="${WAYWALLEN_REF:-main}"
 WAYWALLEN_SRC="${WAYWALLEN_SRC:-$PROJECT_DIR/build/waywallen-src}"
 BRIDGE_INSTALL_DIR="${BRIDGE_INSTALL_DIR:-$PROJECT_DIR/build/waywallen-bridge-install}"
 BUNDLE_DIR="$PROJECT_DIR/build/waywallen-plugin-bundle"
+SYMBOLS_DIR="$PROJECT_DIR/build/waywallen-plugin-symbols"
 DIST_DIR="${DIST_DIR:-$PROJECT_DIR/dist}"
 PLUGIN_ID="org.waywallen.open-wallpaper-engine"
 
@@ -132,6 +133,8 @@ set +u
 conda activate "$ENV_PREFIX"
 set -u
 
+command -v llvm-objcopy >/dev/null || fail "llvm-objcopy not found"
+
 if [[ ! -d "$WAYWALLEN_SRC/.git" ]]; then
     if [[ -e "$WAYWALLEN_SRC" ]]; then
         fail "$WAYWALLEN_SRC exists but is not a git checkout"
@@ -176,14 +179,34 @@ plugin_version="$(sed -n 's/^version = "\([^"]*\)"$/\1/p' "$BUNDLE_DIR/plugin.to
 [[ -n "$plugin_version" ]] || fail "plugin version not found in $BUNDLE_DIR/plugin.toml"
 system_name="$(uname -s | tr '[:upper:]' '[:lower:]')"
 package_path="$DIST_DIR/$PLUGIN_ID-$plugin_version-$system_name-$host_arch.zip"
+
+info "Packaging renderer debug symbols"
+rm -rf "$SYMBOLS_DIR"
+scene_bin="bin/waywallen-wescene-renderer"
+web_bin="lib/weweb/waywallen-weweb-renderer"
+for binary in "$scene_bin" "$web_bin"; do
+    [[ -f "$BUNDLE_DIR/$binary" ]] || fail "missing renderer binary: $BUNDLE_DIR/$binary"
+    mkdir -p "$SYMBOLS_DIR/$(dirname "$binary")"
+    llvm-objcopy --only-keep-debug "$BUNDLE_DIR/$binary" "$SYMBOLS_DIR/$binary.debug"
+    llvm-objcopy --strip-unneeded "$BUNDLE_DIR/$binary"
+    llvm-objcopy --add-gnu-debuglink="$SYMBOLS_DIR/$binary.debug" "$BUNDLE_DIR/$binary"
+done
+symbols_path="$DIST_DIR/$PLUGIN_ID-$plugin_version-$system_name-$host_arch-debug-symbols.zip"
 cmake -E chdir "$BUNDLE_DIR" cmake -E tar cf "$package_path" --format=zip .
+cmake -E chdir "$SYMBOLS_DIR" cmake -E tar cf "$symbols_path" --format=zip .
 
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     output_path="$package_path"
+    symbols_output_path="$symbols_path"
     if [[ "$output_path" == "$PROJECT_DIR/"* ]]; then
         output_path="${output_path#$PROJECT_DIR/}"
     fi
+    if [[ "$symbols_output_path" == "$PROJECT_DIR/"* ]]; then
+        symbols_output_path="${symbols_output_path#$PROJECT_DIR/}"
+    fi
     printf 'zip=%s\n' "$output_path" >> "$GITHUB_OUTPUT"
+    printf 'symbols=%s\n' "$symbols_output_path" >> "$GITHUB_OUTPUT"
 fi
 
 printf '%s\n' "$package_path"
+printf '%s\n' "$symbols_path"
