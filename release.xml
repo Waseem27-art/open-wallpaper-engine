@@ -1,3 +1,21 @@
+<release version="0.2.7" date="2026-08-24">
+  <description>
+    <p>Added:</p>
+    <ul>
+      <li>Localized plugin metadata and configuration labels.</li>
+      <li>Wallpaper property titles follow the user's locale. #109 by @wehrwolfmann</li>
+    </ul>
+    <p>Fixes:</p>
+    <ul>
+      <li>Scene parallax depth routing across image, particle, text and script-driven objects. #116 by @ayasa520</li>
+      <li>Scripted orthographic camera transforms no longer shift scenes into screen corners.</li>
+    </ul>
+    <p>Changed:</p>
+    <ul>
+      <li>Resolve the Waywallen bridge through pkg-config during Lito builds.</li>
+    </ul>
+  </description>
+</release>
 <release version="0.2.6" date="2026-08-19">
   <description>
     <p>Fixes:</p>

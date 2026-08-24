@@ -68,7 +68,7 @@ jobs:
             libegl1 \
             libexpat1-dev \
             libfontconfig1-dev \
-            libgbm1 \
+            libgbm-dev \
             libgl1 \
             libgtk-3-0 \
             libnss3 \

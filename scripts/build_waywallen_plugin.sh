@@ -8,7 +8,6 @@ ENV_PREFIX="${OWE_CONDA_PREFIX:-$PROJECT_DIR/build/conda-envs/$ENV_NAME}"
 BUILD_TYPE="${BUILD_TYPE:-Release}"
 WAYWALLEN_REF="${WAYWALLEN_REF:-main}"
 WAYWALLEN_SRC="${WAYWALLEN_SRC:-$PROJECT_DIR/build/waywallen-src}"
-BRIDGE_BUILD_DIR="${BRIDGE_BUILD_DIR:-$PROJECT_DIR/build/waywallen-bridge}"
 BRIDGE_INSTALL_DIR="${BRIDGE_INSTALL_DIR:-$PROJECT_DIR/build/waywallen-bridge-install}"
 BUNDLE_DIR="$PROJECT_DIR/build/waywallen-plugin-bundle"
 DIST_DIR="${DIST_DIR:-$PROJECT_DIR/dist}"
@@ -16,6 +15,13 @@ PLUGIN_ID="org.waywallen.open-wallpaper-engine"
 
 info() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 fail() { printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
+
+case "$BUILD_TYPE" in
+    Debug) LITO_PROFILE="${LITO_PROFILE:-debug}" ;;
+    Release) LITO_PROFILE="${LITO_PROFILE:-release}" ;;
+    RelWithDebInfo) LITO_PROFILE="${LITO_PROFILE:-relwithdebinfo}" ;;
+    *) fail "unsupported BUILD_TYPE for lito profile: $BUILD_TYPE" ;;
+esac
 
 host_arch="$(uname -m)"
 case "$host_arch" in
@@ -146,38 +152,23 @@ info "Preparing shared waywallen build dependencies"
 bash "$WAYWALLEN_SRC/scripts/build_ffmpeg.sh"
 bash "$WAYWALLEN_SRC/scripts/copy_syslibs.sh"
 
-SYSROOT_ARGS=()
-if [[ -n "${CONDA_BUILD_SYSROOT:-}" ]]; then
-    SYSROOT_ARGS=(-DCMAKE_SYSROOT="$CONDA_BUILD_SYSROOT")
-fi
-
-THREAD_ARGS=(-DCMAKE_C_FLAGS_INIT=-pthread -DCMAKE_CXX_FLAGS_INIT=-pthread)
-
 info "Cleaning install prefixes"
 rm -rf "$BRIDGE_INSTALL_DIR" "$BUNDLE_DIR"
 mkdir -p "$BRIDGE_INSTALL_DIR" "$BUNDLE_DIR" "$DIST_DIR"
 
-info "Configuring waywallen bridge"
-cmake -S "$WAYWALLEN_SRC/bridge" -B "$BRIDGE_BUILD_DIR" -G Ninja \
-    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
-    -DCMAKE_C_COMPILER=clang \
-    -DCMAKE_CXX_COMPILER=clang++ \
-    -DCMAKE_LINKER_TYPE=LLD \
-    "${SYSROOT_ARGS[@]}" \
-    "${THREAD_ARGS[@]}" \
-    -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
-    -DCMAKE_INSTALL_PREFIX="$BRIDGE_INSTALL_DIR" \
-    -DBUILD_SHARED_LIBS=OFF
-
 info "Building waywallen bridge"
-cmake --build "$BRIDGE_BUILD_DIR" --parallel
-cmake --install "$BRIDGE_BUILD_DIR"
+"$LITO_BIN" -C "$WAYWALLEN_SRC" install -p waywallen-bridge \
+    --no-config \
+    --profile "$LITO_PROFILE" \
+    --prefix "$BRIDGE_INSTALL_DIR" \
+    --config "tools.pkg-config.search-path=[\"$CONDA_PREFIX/lib/pkgconfig\"]"
 
 info "Building open-wallpaper-engine"
 OWE_WAYWALLEN_PLUGIN_BUNDLE_LAYOUT=ON "$LITO_BIN" install -p owe-waywallen-plugin \
     --no-config \
+    --profile "$LITO_PROFILE" \
     --prefix "$BUNDLE_DIR" \
-    --config "cmake.search-path=[\"$BRIDGE_INSTALL_DIR\",\"$CONDA_PREFIX\"]"
+    --config "tools.pkg-config.search-path=[\"$BRIDGE_INSTALL_DIR/lib/pkgconfig\",\"$CONDA_PREFIX/lib/pkgconfig\"]"
 
 info "Packaging plugin bundle"
 rm -f "$DIST_DIR"/*.zip

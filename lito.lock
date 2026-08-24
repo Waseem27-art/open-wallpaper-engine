@@ -1,670 +1,362 @@
-{
-  "packages": [
-    {
-      "dependencies": [
-        "owe-core",
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "src/Audio/lito.toml",
-      "name": "owe-audio",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "rstd-argparse",
-        "rstd-cppstd",
-        "rstd-json",
-        "rstd-log",
-        "rstd-std"
-      ],
-      "externals": [
-        {
-          "name": "eigen",
-          "source": {
-            "commit": "bc3b39870ecb690a623a3f49149a358b95c5781d",
-            "kind": "git",
-            "reference": {
-              "kind": "rev",
-              "value": "bc3b39870ecb690a623a3f49149a358b95c5781d"
-            },
-            "url": "https://gitlab.com/libeigen/eigen.git"
-          }
-        }
-      ],
-      "manifest": "src/Core/lito.toml",
-      "name": "owe-core",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-audio",
-        "owe-core",
-        "owe-types",
-        "owe-utils",
-        "owe-vulkan",
-        "rstd-argparse",
-        "rstd-bench",
-        "rstd-cppstd",
-        "rstd-json",
-        "rstd-log",
-        "rstd-std",
-        "wavsen"
-      ],
-      "externals": [
-        {
-          "name": "quickjs",
-          "source": {
-            "commit": "3c051980ab7e783dfbfb1c70c014ce5e05ecf24c",
-            "kind": "git",
-            "reference": {
-              "kind": "rev",
-              "value": "3c051980ab7e783dfbfb1c70c014ce5e05ecf24c"
-            },
-            "url": "https://github.com/quickjs-ng/quickjs.git"
-          }
-        }
-      ],
-      "manifest": "src/Scene/lito.toml",
-      "name": "owe-scene",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-core",
-        "owe-scene",
-        "owe-viewer-common",
-        "rstd-log"
-      ],
-      "externals": [],
-      "manifest": "viewer/SceneViewer/lito.toml",
-      "name": "owe-sceneviewer",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-audio",
-        "owe-core",
-        "owe-scene",
-        "owe-vulkan",
-        "rstd-argparse",
-        "rstd-bench",
-        "rstd-cppstd",
-        "rstd-json",
-        "rstd-log",
-        "rstd-std",
-        "rstd-test",
-        "spirv-reflect",
-        "vvk",
-        "wavsen"
-      ],
-      "externals": [],
-      "manifest": "tests/lito.toml",
-      "name": "owe-tests",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-core",
-        "rstd-cppstd",
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "src/Scene/types/lito.toml",
-      "name": "owe-types",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-core",
-        "owe-types",
-        "rstd-cppstd",
-        "rstd-log",
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "src/Scene/Utils/lito.toml",
-      "name": "owe-utils",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-audio",
-        "owe-core",
-        "rstd-argparse",
-        "rstd-cppstd",
-        "rstd-std",
-        "wavsen"
-      ],
-      "externals": [],
-      "manifest": "viewer/Common/lito.toml",
-      "name": "owe-viewer-common",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-core",
-        "owe-types",
-        "owe-utils",
-        "rstd-cppstd",
-        "rstd-log",
-        "rstd-std",
-        "spirv-reflect",
-        "vvk",
-        "wavsen"
-      ],
-      "externals": [
-        {
-          "name": "glslang",
-          "source": {
-            "commit": "275822a6261ee689aadb1da5f09a0ec2f058685c",
-            "kind": "git",
-            "reference": {
-              "kind": "rev",
-              "value": "275822a6261ee689aadb1da5f09a0ec2f058685c"
-            },
-            "url": "https://github.com/KhronosGroup/glslang.git"
-          }
-        }
-      ],
-      "manifest": "src/Vulkan/lito.toml",
-      "name": "owe-vulkan",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [],
-      "externals": [],
-      "manifest": "waywallen/plugins/org.waywallen.open-wallpaper-engine/lito.toml",
-      "name": "owe-waywallen-plugin",
-      "runtime-dependencies": [
-        "owe-waywallen-scene-renderer",
-        "owe-waywallen-web-renderer"
-      ],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-audio",
-        "rstd-cppstd",
-        "rstd-std",
-        "vvk"
-      ],
-      "externals": [],
-      "manifest": "waywallen/Producer/lito.toml",
-      "name": "owe-waywallen-producer",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-core",
-        "owe-scene",
-        "owe-vulkan",
-        "owe-waywallen-producer",
-        "rstd-argparse",
-        "rstd-cppstd",
-        "rstd-log",
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "waywallen/SceneRenderer/lito.toml",
-      "name": "owe-waywallen-scene-renderer",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-audio",
-        "owe-core",
-        "owe-waywallen-producer",
-        "owe-web",
-        "rstd-argparse",
-        "rstd-cppstd",
-        "rstd-log",
-        "rstd-std",
-        "vvk"
-      ],
-      "externals": [],
-      "manifest": "waywallen/WebRenderer/lito.toml",
-      "name": "owe-waywallen-web-renderer",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-core",
-        "rstd-cppstd",
-        "rstd-std"
-      ],
-      "externals": [
-        {
-          "architectures": [
-            "aarch64"
-          ],
-          "name": "cef",
-          "source": {
-            "kind": "archive",
-            "sha256": "8909a79689eec7b23ed80084b69766952d44e00f9a345832951b32903f8a80a0",
-            "url": "https://cef-builds.spotifycdn.com/cef_binary_149.0.4%2Bg2f1bfd8%2Bchromium-149.0.7827.156_linuxarm64_minimal.tar.bz2"
-          }
-        },
-        {
-          "architectures": [
-            "x86_64"
-          ],
-          "name": "cef",
-          "source": {
-            "kind": "archive",
-            "sha256": "6d43607675e47ed6bfa40d1cfce136d04e7720529f8f1c4435d4ba1dcd1839b2",
-            "url": "https://cef-builds.spotifycdn.com/cef_binary_149.0.4%2Bg2f1bfd8%2Bchromium-149.0.7827.156_linux64_minimal.tar.bz2"
-          }
-        }
-      ],
-      "manifest": "src/Web/lito.toml",
-      "name": "owe-web",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "owe-audio",
-        "owe-core",
-        "owe-viewer-common",
-        "owe-web",
-        "rstd-argparse",
-        "rstd-cppstd",
-        "vvk",
-        "wavsen"
-      ],
-      "externals": [],
-      "manifest": "viewer/WebViewer/lito.toml",
-      "name": "owe-webviewer",
-      "runtime-dependencies": [],
-      "source": {
-        "kind": "path",
-        "path": "."
-      },
-      "version": "0.2.6"
-    },
-    {
-      "dependencies": [
-        "rstd-core",
-        "rstd-runtime"
-      ],
-      "externals": [],
-      "manifest": "src/alloc/lito.toml",
-      "name": "rstd-alloc",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "src/argparse/lito.toml",
-      "name": "rstd-argparse",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [],
-      "externals": [],
-      "manifest": "src/basic/lito.toml",
-      "name": "rstd-basic",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "src/bench/lito.toml",
-      "name": "rstd-bench",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-basic",
-        "rstd-runtime"
-      ],
-      "externals": [],
-      "manifest": "src/core/lito.toml",
-      "name": "rstd-core",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "src/cppstd/lito.toml",
-      "name": "rstd-cppstd",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "src/dlopn/lito.toml",
-      "name": "rstd-dlopn",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-core",
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "src/json/lito.toml",
-      "name": "rstd-json",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-core",
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "src/log/lito.toml",
-      "name": "rstd-log",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-basic"
-      ],
-      "externals": [],
-      "manifest": "src/runtime/lito.toml",
-      "name": "rstd-runtime",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-alloc",
-        "rstd-core"
-      ],
-      "externals": [],
-      "manifest": "src/std/lito.toml",
-      "name": "rstd-std",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-std"
-      ],
-      "externals": [],
-      "manifest": "src/test/lito.toml",
-      "name": "rstd-test",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "a852e89dc7b2c7fae6cc4c89d1f76afbac55be82",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/rstd.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [],
-      "externals": [],
-      "manifest": "lito.toml",
-      "name": "spirv-reflect",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "355785128c1b6ba808e3a7d0e344814fe6cff502",
-        "kind": "git",
-        "reference": {
-          "kind": "branch",
-          "value": "toml"
-        },
-        "url": "https://github.com/hypengw/SPIRV-Reflect.git"
-      },
-      "version": "1.4.321"
-    },
-    {
-      "dependencies": [
-        "rstd-cppstd",
-        "rstd-log",
-        "rstd-std"
-      ],
-      "externals": [
-        {
-          "name": "vma",
-          "source": {
-            "commit": "3aa921224c154a0d2c43912bc88e1c42ce1f7607",
-            "kind": "git",
-            "reference": {
-              "kind": "rev",
-              "value": "3aa921224c154a0d2c43912bc88e1c42ce1f7607"
-            },
-            "url": "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git"
-          }
-        }
-      ],
-      "manifest": "lito.toml",
-      "name": "vvk",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "f53d60cc70938d0485802750deeb15d18ba033ea",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/litocpp/vvk.git"
-      },
-      "version": "0.1.0"
-    },
-    {
-      "dependencies": [
-        "rstd-core",
-        "rstd-cppstd",
-        "rstd-dlopn",
-        "rstd-log",
-        "rstd-std",
-        "vvk"
-      ],
-      "externals": [
-        {
-          "name": "wavsen-shader",
-          "source": {
-            "kind": "package",
-            "path": "shaders"
-          }
-        }
-      ],
-      "manifest": "lito.toml",
-      "name": "wavsen",
-      "runtime-dependencies": [],
-      "source": {
-        "commit": "c07711f73253b0e3c53329c9930f2024193f8641",
-        "kind": "git",
-        "reference": {
-          "kind": "default",
-          "value": ""
-        },
-        "url": "https://github.com/hypengw/wavsen.git"
-      },
-      "version": "0.1.0"
-    }
-  ],
-  "version": 2
-}
+version = 1
+
+[[packages]]
+name = "owe-audio"
+version = "0.2.7"
+dependencies = [
+  "owe-core",
+  "rstd-std",
+]
+
+[[packages]]
+name = "owe-core"
+version = "0.2.7"
+dependencies = [
+  "rstd-argparse",
+  "rstd-cppstd",
+  "rstd-json",
+  "rstd-log",
+  "rstd-std",
+]
+
+[[packages.externals]]
+name = "eigen"
+source = "git+https://gitlab.com/libeigen/eigen.git#bc3b39870ecb690a623a3f49149a358b95c5781d"
+
+[[packages]]
+name = "owe-scene"
+version = "0.2.7"
+dependencies = [
+  "owe-audio",
+  "owe-core",
+  "owe-types",
+  "owe-utils",
+  "owe-vulkan",
+  "rstd-argparse",
+  "rstd-bench",
+  "rstd-cppstd",
+  "rstd-json",
+  "rstd-log",
+  "rstd-std",
+  "wavsen",
+]
+
+[[packages.externals]]
+name = "quickjs"
+source = "git+https://github.com/quickjs-ng/quickjs.git#3c051980ab7e783dfbfb1c70c014ce5e05ecf24c"
+
+[[packages]]
+name = "owe-sceneviewer"
+version = "0.2.7"
+dependencies = [
+  "owe-core",
+  "owe-scene",
+  "owe-viewer-common",
+  "rstd-log",
+]
+
+[[packages]]
+name = "owe-tests"
+version = "0.2.7"
+dependencies = [
+  "owe-audio",
+  "owe-core",
+  "owe-scene",
+  "owe-vulkan",
+  "rstd-argparse",
+  "rstd-bench",
+  "rstd-cppstd",
+  "rstd-json",
+  "rstd-log",
+  "rstd-std",
+  "rstd-test",
+  "spirv-reflect",
+  "vvk",
+  "wavsen",
+]
+
+[[packages]]
+name = "owe-types"
+version = "0.2.7"
+dependencies = [
+  "owe-core",
+  "rstd-cppstd",
+  "rstd-std",
+]
+
+[[packages]]
+name = "owe-utils"
+version = "0.2.7"
+dependencies = [
+  "owe-core",
+  "owe-types",
+  "rstd-cppstd",
+  "rstd-log",
+  "rstd-std",
+]
+
+[[packages]]
+name = "owe-viewer-common"
+version = "0.2.7"
+dependencies = [
+  "owe-audio",
+  "owe-core",
+  "rstd-argparse",
+  "rstd-cppstd",
+  "rstd-std",
+  "wavsen",
+]
+
+[[packages]]
+name = "owe-vulkan"
+version = "0.2.7"
+dependencies = [
+  "owe-core",
+  "owe-types",
+  "owe-utils",
+  "rstd-cppstd",
+  "rstd-log",
+  "rstd-std",
+  "spirv-reflect",
+  "vvk",
+  "wavsen",
+]
+
+[[packages.externals]]
+name = "glslang"
+source = "git+https://github.com/KhronosGroup/glslang.git#275822a6261ee689aadb1da5f09a0ec2f058685c"
+
+[[packages]]
+name = "owe-waywallen-plugin"
+version = "0.2.7"
+runtime-dependencies = [
+  "owe-waywallen-scene-renderer",
+  "owe-waywallen-web-renderer",
+]
+
+[[packages]]
+name = "owe-waywallen-producer"
+version = "0.2.7"
+dependencies = [
+  "owe-audio",
+  "rstd-cppstd",
+  "rstd-std",
+  "vvk",
+]
+
+[[packages]]
+name = "owe-waywallen-scene-renderer"
+version = "0.2.7"
+dependencies = [
+  "owe-core",
+  "owe-scene",
+  "owe-vulkan",
+  "owe-waywallen-producer",
+  "rstd-argparse",
+  "rstd-cppstd",
+  "rstd-log",
+  "rstd-std",
+]
+
+[[packages]]
+name = "owe-waywallen-web-renderer"
+version = "0.2.7"
+dependencies = [
+  "owe-audio",
+  "owe-core",
+  "owe-waywallen-producer",
+  "owe-web",
+  "rstd-argparse",
+  "rstd-cppstd",
+  "rstd-log",
+  "rstd-std",
+  "vvk",
+]
+
+[[packages]]
+name = "owe-web"
+version = "0.2.7"
+dependencies = [
+  "owe-core",
+  "rstd-cppstd",
+  "rstd-std",
+]
+
+[[packages.externals]]
+name = "cef"
+source = "archive+https://cef-builds.spotifycdn.com/cef_binary_149.0.4%2Bg2f1bfd8%2Bchromium-149.0.7827.156_linuxarm64_minimal.tar.bz2"
+checksum = "sha256:8909a79689eec7b23ed80084b69766952d44e00f9a345832951b32903f8a80a0"
+architectures = [
+  "aarch64",
+]
+
+[[packages.externals]]
+name = "cef"
+source = "archive+https://cef-builds.spotifycdn.com/cef_binary_149.0.4%2Bg2f1bfd8%2Bchromium-149.0.7827.156_linux64_minimal.tar.bz2"
+checksum = "sha256:6d43607675e47ed6bfa40d1cfce136d04e7720529f8f1c4435d4ba1dcd1839b2"
+architectures = [
+  "x86_64",
+]
+
+[[packages]]
+name = "owe-webviewer"
+version = "0.2.7"
+dependencies = [
+  "owe-audio",
+  "owe-core",
+  "owe-viewer-common",
+  "owe-web",
+  "rstd-argparse",
+  "rstd-cppstd",
+  "vvk",
+  "wavsen",
+]
+
+[[packages]]
+name = "rstd-alloc"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-core",
+  "rstd-runtime",
+]
+
+[[packages]]
+name = "rstd-argparse"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-std",
+]
+
+[[packages]]
+name = "rstd-basic"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+
+[[packages]]
+name = "rstd-bench"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-std",
+]
+
+[[packages]]
+name = "rstd-core"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-basic",
+  "rstd-runtime",
+]
+
+[[packages]]
+name = "rstd-cppstd"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-std",
+]
+
+[[packages]]
+name = "rstd-dlopn"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-std",
+]
+
+[[packages]]
+name = "rstd-json"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-core",
+  "rstd-parse",
+  "rstd-serde",
+  "rstd-std",
+]
+
+[[packages]]
+name = "rstd-log"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-core",
+  "rstd-std",
+]
+
+[[packages]]
+name = "rstd-parse"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-alloc",
+  "rstd-core",
+]
+
+[[packages]]
+name = "rstd-runtime"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-basic",
+]
+
+[[packages]]
+name = "rstd-serde"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-alloc",
+]
+
+[[packages]]
+name = "rstd-std"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-alloc",
+  "rstd-core",
+]
+
+[[packages]]
+name = "rstd-test"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/rstd.git#fdb99aaa894d76b04032cd301ac82b5ee6e3ec6d"
+dependencies = [
+  "rstd-std",
+]
+
+[[packages]]
+name = "spirv-reflect"
+version = "1.4.321"
+source = "git+https://github.com/hypengw/SPIRV-Reflect.git#355785128c1b6ba808e3a7d0e344814fe6cff502"
+
+[[packages]]
+name = "vvk"
+version = "0.1.0"
+source = "git+https://github.com/litocpp/vvk.git#f53d60cc70938d0485802750deeb15d18ba033ea"
+dependencies = [
+  "rstd-cppstd",
+  "rstd-log",
+  "rstd-std",
+]
+
+[[packages.externals]]
+name = "vma"
+source = "git+https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git#3aa921224c154a0d2c43912bc88e1c42ce1f7607"
+
+[[packages]]
+name = "wavsen"
+version = "0.1.0"
+source = "git+https://github.com/hypengw/wavsen.git#c7cb2b2304b0b0e309c19373ac0722d904ddebc0"
+dependencies = [
+  "rstd-core",
+  "rstd-cppstd",
+  "rstd-dlopn",
+  "rstd-log",
+  "rstd-std",
+  "vvk",
+]
