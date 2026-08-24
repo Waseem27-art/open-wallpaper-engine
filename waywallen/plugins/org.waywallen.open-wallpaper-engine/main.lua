@@ -7,6 +7,7 @@ local session = import("wallpaper_engine.session")
 local subscription = import("wallpaper_engine.subscription")
 
 local M = {}
+local steam_account_group = tr("Steam account")
 
 local function expand_home(path)
     local getenv = os and os.getenv
@@ -25,28 +26,34 @@ end
 function M.info()
     return {
         name = "wallpaper_engine",
-        display_name = "Workshop",
+        display_name = tr("Workshop"),
         status = {
-            { id = "steam_account", label = "Status", group = "Steam account", order = 20 },
+            {
+                id = "steam_account",
+                label = tr("Status"),
+                group = "steam_account",
+                group_label = steam_account_group,
+                order = 20,
+            },
         },
         actions = {
             {
                 id = "steam_sign_in",
                 kind = "qr_login",
-                label = "Log in to Steam",
-                browse_button_label = "Log in to Steam",
-                browse_description =
-                    "Waywallen only manages Workshop subscriptions and does not download " ..
-                    "wallpapers. Keep the Steam desktop client running to download subscribed items.",
-                group = "Steam account",
+                label = tr("Log in to Steam"),
+                browse_button_label = tr("Log in to Steam"),
+                browse_description = tr([[Waywallen only manages Workshop subscriptions and does not download wallpapers. Keep the Steam desktop client running to download subscribed items.]]),
+                group = "steam_account",
+                group_label = steam_account_group,
                 order = 21,
                 required_for_browsing = true,
             },
             {
                 id = "steam_sign_out",
                 kind = "invoke",
-                label = "Sign out",
-                group = "Steam account",
+                label = tr("Sign out"),
+                group = "steam_account",
+                group_label = steam_account_group,
                 order = 22,
             },
         },
@@ -58,7 +65,7 @@ function M.info()
                 types = { "scene", "video", "web" },
                 scan = true,
                 auto_detect = true,
-                library_label = "Steam Library Path",
+                library_label = tr("Steam Library Path"),
                 library_hint =
                     "Pick the directory that contains the `steamapps` folder.\n" ..
                     "Typically `" .. expand_home("~/.steam/steam") .. "` or `" ..
@@ -71,15 +78,15 @@ function M.info()
                 details = true,
                 subscription = true,
                 sorts = {
-                    { key = "trend_day", label = "Trending today" },
-                    { key = "trend_week", label = "Trending this week" },
-                    { key = "trend_month", label = "Trending this month" },
-                    { key = "trend_3months", label = "Trending 3 months" },
-                    { key = "trend_6months", label = "Trending 6 months" },
-                    { key = "trend_year", label = "Trending this year" },
-                    { key = "recent", label = "Most recent" },
-                    { key = "most_subscribed", label = "Most subscribed" },
-                    { key = "top_rated", label = "Top rated" },
+                    { key = "trend_day", label = tr("Trending today") },
+                    { key = "trend_week", label = tr("Trending this week") },
+                    { key = "trend_month", label = tr("Trending this month") },
+                    { key = "trend_3months", label = tr("Trending 3 months") },
+                    { key = "trend_6months", label = tr("Trending 6 months") },
+                    { key = "trend_year", label = tr("Trending this year") },
+                    { key = "recent", label = tr("Most recent") },
+                    { key = "most_subscribed", label = tr("Most subscribed") },
+                    { key = "top_rated", label = tr("Top rated") },
                 },
                 filters = api.filters,
             },

@@ -32,20 +32,20 @@ local RATING_TAGS = { Everyone = true, Questionable = true, Mature = true }
 M.filters = {
     {
         id = "type",
-        title = "Type",
+        title = tr("Type"),
         type = "multi_select",
         values = { "Scene", "Video", "Web" },
     },
     {
         id = "content_rating",
-        title = "Content rating",
+        title = tr("Content rating"),
         type = "multi_select",
         values = { "Everyone", "Questionable", "Mature" },
-        description = "Defaults to Everyone when nothing is selected. Mature includes NSFW wallpapers.",
+        description = tr("Defaults to Everyone when nothing is selected. Mature includes NSFW wallpapers."),
     },
     {
         id = "miscellaneous",
-        title = "Miscellaneous",
+        title = tr("Miscellaneous"),
         type = "multi_select",
         values = {
             "Approved",
@@ -61,7 +61,7 @@ M.filters = {
     },
     {
         id = "genre",
-        title = "Genre",
+        title = tr("Genre"),
         type = "multi_select",
         values = {
             "Abstract",
@@ -93,7 +93,7 @@ M.filters = {
     },
     {
         id = "resolution",
-        title = "Resolution",
+        title = tr("Resolution"),
         type = "select",
         values = {
             "Standard Definition",

@@ -1,0 +1,142 @@
+msgid ""
+msgstr "Project-Id-Version: org.waywallen.open-wallpaper-engine 0.2.6\nLanguage: zh-CN\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n"
+
+#: plugin.toml
+msgid "Audio"
+msgstr "音频"
+
+#: wallpaper_engine/api.lua:41
+msgid "Content rating"
+msgstr "内容分级"
+
+#: plugin.toml
+msgid "Custom resolution"
+msgstr "自定义分辨率"
+
+#: plugin.toml
+msgid "Debugging"
+msgstr "调试"
+
+#: plugin.toml
+msgid "Decoding"
+msgstr "解码"
+
+#: wallpaper_engine/api.lua:44
+msgid "Defaults to Everyone when nothing is selected. Mature includes NSFW wallpapers."
+msgstr "未选择时默认为 Everyone。Mature 包含 NSFW 壁纸。"
+
+#: plugin.toml
+msgid "Enable audio"
+msgstr "启用音频"
+
+#: plugin.toml
+msgid "Frame rate"
+msgstr "帧率"
+
+#: wallpaper_engine/api.lua:64
+msgid "Genre"
+msgstr "题材"
+
+#: plugin.toml
+msgid "Hardware decoding"
+msgstr "硬件解码"
+
+#: main.lua:43 main.lua:44
+msgid "Log in to Steam"
+msgstr "登录 Steam"
+
+#: plugin.toml
+msgid "MSAA"
+msgstr "MSAA"
+
+#: wallpaper_engine/api.lua:48
+msgid "Miscellaneous"
+msgstr "其他"
+
+#: main.lua:87
+msgid "Most recent"
+msgstr "最新"
+
+#: main.lua:88
+msgid "Most subscribed"
+msgstr "订阅最多"
+
+#: plugin.toml
+msgid "Remote debugging port"
+msgstr "远程调试端口"
+
+#: plugin.toml
+msgid "Render node"
+msgstr "渲染节点"
+
+#: plugin.toml
+msgid "Rendering"
+msgstr "渲染"
+
+#: plugin.toml wallpaper_engine/api.lua:96
+msgid "Resolution"
+msgstr "分辨率"
+
+#: plugin.toml
+msgid "Shared texture"
+msgstr "共享纹理"
+
+#: main.lua:54
+msgid "Sign out"
+msgstr "退出登录"
+
+#: main.lua:33
+msgid "Status"
+msgstr "状态"
+
+#: main.lua:68
+msgid "Steam Library Path"
+msgstr "Steam 库路径"
+
+#: main.lua:10
+msgid "Steam account"
+msgstr "Steam 账户"
+
+#: main.lua:89
+msgid "Top rated"
+msgstr "评分最高"
+
+#: main.lua:84
+msgid "Trending 3 months"
+msgstr "三个月趋势"
+
+#: main.lua:85
+msgid "Trending 6 months"
+msgstr "六个月趋势"
+
+#: main.lua:83
+msgid "Trending this month"
+msgstr "本月趋势"
+
+#: main.lua:82
+msgid "Trending this week"
+msgstr "本周趋势"
+
+#: main.lua:86
+msgid "Trending this year"
+msgstr "今年趋势"
+
+#: main.lua:81
+msgid "Trending today"
+msgstr "今日趋势"
+
+#: wallpaper_engine/api.lua:35
+msgid "Type"
+msgstr "类型"
+
+#: plugin.toml
+msgid "Volume"
+msgstr "音量"
+
+#: main.lua:45
+msgid "Waywallen only manages Workshop subscriptions and does not download wallpapers. Keep the Steam desktop client running to download subscribed items."
+msgstr "Waywallen 仅管理创意工坊订阅，不会下载壁纸。请保持 Steam 桌面客户端运行，以下载已订阅的项目。"
+
+#: main.lua:29
+msgid "Workshop"
+msgstr "创意工坊"

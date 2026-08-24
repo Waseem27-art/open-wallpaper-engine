@@ -1,6 +1,10 @@
 local plugin_root = assert(arg[1], "plugin root argument required")
 local cache = {}
 
+function tr(msgid)
+    return msgid
+end
+
 function import(name)
     if cache[name] ~= nil then return cache[name] end
     local path = plugin_root .. "/" .. name:gsub("%.", "/") .. ".lua"
@@ -318,7 +322,11 @@ equal(info.capabilities.discover.filters[2].type, "multi_select", "content ratin
 equal(info.capabilities.discover.filters[2].values[1], "Everyone", "everyone value")
 equal(info.capabilities.discover.filters[2].values[2], "Questionable", "questionable value")
 equal(info.capabilities.discover.filters[2].values[3], "Mature", "mature value")
+equal(info.status[1].group, "steam_account", "Steam account status group")
+equal(info.status[1].group_label, "Steam account", "Steam account status group label")
 equal(info.actions[1].label, "Log in to Steam", "Steam login label")
+equal(info.actions[1].group, "steam_account", "Steam login group")
+equal(info.actions[1].group_label, "Steam account", "Steam login group label")
 equal(info.actions[1].browse_button_label, "Log in to Steam", "Steam browse login button label")
 equal(info.actions[1].description, nil, "Steam manage action description")
 equal(
