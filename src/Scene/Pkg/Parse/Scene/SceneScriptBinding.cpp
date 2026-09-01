@@ -471,6 +471,29 @@ void WireFieldScripts(SceneParseContext& context, const Arc<SceneNode>& node_sp,
     }
 }
 
+// Effect visibility scripts (Media Player asset family) don't return a
+// value — they assign `thisObject.visible` from event callbacks
+// (mediaThumbnailChanged and friends). Register the script with
+// `thisObject` bound to the built effect; no actuator, matching the
+// side-effect-only handling of object visibility scripts above.
+void WireImageEffectVisibleScript(SceneParseContext& context, const Arc<SceneNode>& node_sp,
+                                  usize effect_index, const wpscene::ScriptBinding& sb) {
+    auto& ss = EnsureScriptScene(context);
+    auto& rt = ss.runtime();
+
+    std::string sha = utils::genSha1(std::span<const char>(sb.source));
+    auto*       fs  = rt.MakeFieldScript(sb.source,
+                                  sha,
+                                  script::FieldKind::Bool,
+                                  sb.properties,
+                                  sb.initial_value,
+                                  node_sp.as_ptr());
+    if (! fs) return;
+    rt.BindFieldScriptEffect(*fs, node_sp.as_ptr(), effect_index.to_primitive());
+    SetScriptInitializationOrder(context, *fs, node_sp.as_ptr());
+    TrackRegisteredAssets(context, fs);
+}
+
 void WireCameraShakeScripts(SceneParseContext& context, const wpscene::FieldBindings& fb) {
     if (fb.scripts.empty()) return;
 

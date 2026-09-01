@@ -663,7 +663,8 @@ void ParseImageObjImpl(SceneParseContext& context, wpscene::ImageObject& img_obj
         const bool passthrough_can_composite_final =
             isPassthrough || ! parse_geometry.requires_source_draw;
         for (const auto& wpeffobj : wpimgobj.effects) {
-            if (! wpeffobj.visible && wpeffobj.visible_user.empty()) {
+            if (! wpeffobj.visible && wpeffobj.visible_user.empty() &&
+                wpeffobj.visible_script.source.empty()) {
                 continue;
             }
             std::shared_ptr<SceneImageEffect> imgEffect = std::make_shared<SceneImageEffect>();
@@ -954,9 +955,15 @@ void ParseImageObjImpl(SceneParseContext& context, wpscene::ImageObject& img_obj
                 });
             }
 
-            if (eff_mat_ok)
+            if (eff_mat_ok) {
                 imgEffectLayer->AddEffect(imgEffect);
-            else {
+                if (! wpeffobj.visible_script.source.empty()) {
+                    WireImageEffectVisibleScript(context,
+                                                 spImgNode,
+                                                 imgEffectLayer->EffectCount() - usize(1),
+                                                 wpeffobj.visible_script);
+                }
+            } else {
                 rstd_error("effect \'{}\' failed to load", wpeffobj.name);
             }
         }
@@ -1154,7 +1161,8 @@ void ParseShapeObj(SceneParseContext& context, wpscene::ShapeObject& shape_obj) 
     const wpscene::ImageEffect* first_effect { nullptr };
     const wpscene::ImageEffect* last_effect { nullptr };
     for (const auto& effect : shape_obj.effects) {
-        if (! effect.visible && effect.visible_user.empty()) continue;
+        if (! effect.visible && effect.visible_user.empty() && effect.visible_script.source.empty())
+            continue;
         if (first_effect == nullptr) first_effect = &effect;
         last_effect = &effect;
     }

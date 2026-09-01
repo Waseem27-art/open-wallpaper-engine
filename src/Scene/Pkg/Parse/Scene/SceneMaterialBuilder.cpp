@@ -74,7 +74,11 @@ ShaderValueMap NeutralColorUniforms(ShaderValueMap values) {
 i32 CountVisibleImageEffects(std::span<const wpscene::ImageEffect> effects) {
     i32 count {};
     for (const auto& effect : effects) {
-        if (effect.visible || ! effect.visible_user.empty()) count += i32(1);
+        // Script-visible effects count too: they build hidden and can appear
+        // at runtime, so the object still needs its effect layer.
+        if (effect.visible || ! effect.visible_user.empty() ||
+            ! effect.visible_script.source.empty())
+            count += i32(1);
     }
     return count;
 }

@@ -150,6 +150,14 @@ public:
                                  FieldKind field_kind, const Json& properties_config,
                                  const Json& initial_value, owe::SceneNode* node = nullptr);
 
+    // Bind `thisObject` for this script to the image effect at
+    // `effect_index` on `node`'s effect layer (WE semantics for effect
+    // visibility scripts: `thisLayer` is the owning layer, `thisObject` the
+    // effect). The effect is re-resolved from the node on every access, so
+    // the binding survives scene resource re-registration.
+    void BindFieldScriptEffect(FieldScript& script, owe::SceneNode* node,
+                               std::uint64_t effect_index);
+
     // Pending scripts initialize in ascending owner order when SetSceneRoot
     // completes scene assembly. Equal orders retain creation order.
     void SetInitializationOrder(FieldScript& script, std::uint64_t order);

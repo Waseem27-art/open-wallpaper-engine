@@ -216,6 +216,8 @@ auto ScriptValueAsVec3(const script::ScriptValue&, const Eigen::Vector3f&)
 void WireFieldScripts(SceneParseContext&, const Arc<SceneNode>&, const wpscene::FieldBindings&,
                       std::function<void(const script::ScriptValue&)> = {},
                       std::function<void(const script::ScriptValue&)> = {});
+void WireImageEffectVisibleScript(SceneParseContext&, const Arc<SceneNode>&, usize effect_index,
+                                  const wpscene::ScriptBinding&);
 void WireCameraShakeScripts(SceneParseContext&, const wpscene::FieldBindings&);
 void WireCameraFieldScripts(SceneParseContext&, const Arc<SceneNode>&, const Arc<SceneCamera>&,
                             const Arc<SceneCameraPath>&, const wpscene::FieldBindings&,
