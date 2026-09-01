@@ -66,6 +66,10 @@ public:
     bool                       visible { true };
     VisibleUserBinding         visible_user;
     std::string                visible_user_key;
+    // Non-empty when `visible` carried a `{script}` binding; the effect is
+    // then kept at build (initially hidden when `visible` is false) and the
+    // script drives SceneImageEffect::runtime_visible via `thisObject`.
+    ScriptBinding              visible_script;
     i32                        version;
     std::vector<Material>      materials;
     std::vector<MaterialPass>  passes;

@@ -439,6 +439,12 @@ struct DeferredCb {
     JSValue  fn;         // owned
     bool     repeating;
     bool     dead;
+    // `thisLayer` / `thisObject` globals captured at registration (owned).
+    // The callback body reads them at fire time, when the globals point at
+    // whichever script dispatched last — restore the registrant's bindings
+    // so e.g. `thisObject.visible = false` targets the right object.
+    JSValue bind_layer { JS_UNDEFINED };
+    JSValue bind_object { JS_UNDEFINED };
 };
 
 struct AudioBufferSlot {
@@ -559,6 +565,9 @@ struct FieldScript::Impl {
     // wrapper so per-frame swap doesn't reallocate.
     owe::SceneNode* node { nullptr };
     JSValue         wrapped_layer { JS_UNDEFINED };
+    // When set (a WWEffect wrapper), `thisObject` binds to this instead of
+    // the layer — WE semantics for effect-attached visibility scripts.
+    JSValue wrapped_object { JS_UNDEFINED };
     // Per-script cursor-inside-bbox state used to edge-detect
     // cursorEnter / cursorLeave between frames.
     bool                                                          cursor_inside { false };
@@ -776,14 +785,18 @@ JSValue EngineSetTimerImpl(JSContext* ctx, int argc, JSValueConst* argv, bool re
     if (argc >= 2) JS_ToFloat64(ctx, &ms, argv[1]);
     double   interval_s = ms / 1000.0;
     uint32_t h          = host->next_handle++;
+    JSValue  g          = JS_GetGlobalObject(ctx);
     host->deferred.push_back(DeferredCb {
-        .handle     = h,
-        .fire_at    = host->inputs.runtime + interval_s,
-        .interval_s = interval_s,
-        .fn         = JS_DupValue(ctx, argv[0]),
-        .repeating  = repeating,
-        .dead       = false,
+        .handle      = h,
+        .fire_at     = host->inputs.runtime + interval_s,
+        .interval_s  = interval_s,
+        .fn          = JS_DupValue(ctx, argv[0]),
+        .repeating   = repeating,
+        .dead        = false,
+        .bind_layer  = JS_GetPropertyStr(ctx, g, "thisLayer"),
+        .bind_object = JS_GetPropertyStr(ctx, g, "thisObject"),
     });
+    JS_FreeValue(ctx, g);
     return MakeCancelFn(ctx, h);
 }
 
@@ -1061,6 +1074,14 @@ void SweepDeferred(JSContext* ctx, EngineHostState* host) {
     for (size_t i = 0; i < host->deferred.size(); ++i) {
         if (host->deferred[i].dead) continue;
         while (! host->deferred[i].dead && host->deferred[i].fire_at <= now) {
+            if (! JS_IsUndefined(host->deferred[i].bind_layer)) {
+                JSValue g = JS_GetGlobalObject(ctx);
+                JS_SetPropertyStr(
+                    ctx, g, "thisLayer", JS_DupValue(ctx, host->deferred[i].bind_layer));
+                JS_SetPropertyStr(
+                    ctx, g, "thisObject", JS_DupValue(ctx, host->deferred[i].bind_object));
+                JS_FreeValue(ctx, g);
+            }
             JSValue fn  = JS_DupValue(ctx, host->deferred[i].fn);
             JSValue ret = JS_Call(ctx, fn, JS_UNDEFINED, 0, nullptr);
             JS_FreeValue(ctx, fn);
@@ -1091,6 +1112,11 @@ void SweepDeferred(JSContext* ctx, EngineHostState* host) {
         if (d.dead && ! JS_IsUndefined(d.fn)) {
             JS_FreeValue(ctx, d.fn);
             d.fn = JS_UNDEFINED;
+        }
+        if (d.dead && ! JS_IsUndefined(d.bind_layer)) {
+            JS_FreeValue(ctx, d.bind_layer);
+            JS_FreeValue(ctx, d.bind_object);
+            d.bind_layer = d.bind_object = JS_UNDEFINED;
         }
     }
     host->deferred.erase(std::remove_if(host->deferred.begin(),
@@ -1803,7 +1829,18 @@ struct EffectHandle {
     EngineHostState*            host { nullptr };
     Option<SceneImageEffectRef> ref;
     bool                        fallback_visible { true };
+    // Lazy binding (BindFieldScriptEffect): when `node` is set the effect is
+    // re-resolved from the node's layer on every access, so the handle stays
+    // valid across scene resource re-registration.
+    owe::SceneNode* node { nullptr };
+    std::uint64_t   index { 0 };
 };
+
+Option<SceneImageEffectRef> ResolveEffectRef(EffectHandle* h) {
+    if (! h || ! h->host || ! h->host->scene) return None();
+    if (h->node) return h->host->scene->FindNodeImageEffect(*h->node, usize(h->index));
+    return h->ref.is_some() ? Some(*h->ref) : Option<SceneImageEffectRef>(None());
+}
 
 struct MaterialHandle {
     EngineHostState* host { nullptr };
@@ -1892,8 +1929,8 @@ JSValue WrapMaterial(JSContext* ctx, SceneMaterial* material) {
 JSValue EffectGetVisible(JSContext* ctx, JSValueConst this_val) {
     auto* h = GetEffectHandle(this_val);
     if (! h) return JS_NewBool(ctx, true);
-    if (h->host && h->host->scene && h->ref)
-        return JS_NewBool(ctx, h->host->scene->ImageEffectRuntimeVisible(*h->ref));
+    if (auto ref = ResolveEffectRef(h); ref.is_some())
+        return JS_NewBool(ctx, h->host->scene->ImageEffectRuntimeVisible(*ref));
     return JS_NewBool(ctx, h->fallback_visible);
 }
 
@@ -1902,8 +1939,8 @@ JSValue EffectSetVisible(JSContext* ctx, JSValueConst this_val, JSValueConst val
     bool  visible = JS_ToBool(ctx, val) != 0;
     if (! h) return JS_UNDEFINED;
     h->fallback_visible = visible;
-    if (h->host && h->host->scene && h->ref) {
-        h->host->scene->SetImageEffectRuntimeVisible(*h->ref, visible);
+    if (auto ref = ResolveEffectRef(h); ref.is_some()) {
+        h->host->scene->SetImageEffectRuntimeVisible(*ref, visible);
     }
     return JS_UNDEFINED;
 }
@@ -2449,20 +2486,20 @@ JSValue NodeGetEffectCount(JSContext* ctx, JSValueConst this_val, int, JSValueCo
 
 JSValue EffectGetName(JSContext* ctx, JSValueConst this_val) {
     auto* handle = GetEffectHandle(this_val);
-    if (! handle || ! handle->host || ! handle->host->scene || ! handle->ref)
-        return JS_NewString(ctx, "");
-    auto name = handle->host->scene->ImageEffectName(*handle->ref);
+    auto ref = ResolveEffectRef(handle);
+    if (ref.is_none()) return JS_NewString(ctx, "");
+    auto name = handle->host->scene->ImageEffectName(*ref);
     auto view = rstd::cppstd::as_string_view(name);
     return JS_NewStringLen(ctx, view.data(), view.size());
 }
 
 JSValue EffectGetMaterial(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
     auto* handle = GetEffectHandle(this_val);
-    if (! handle || ! handle->host || ! handle->host->scene || ! handle->ref || argc < 1)
-        return WrapMaterial(ctx, nullptr);
+    auto  ref    = ResolveEffectRef(handle);
+    if (ref.is_none() || argc < 1) return WrapMaterial(ctx, nullptr);
     int64_t index {};
     if (JS_ToInt64(ctx, &index, argv[0]) != 0 || index < 0) return WrapMaterial(ctx, nullptr);
-    return WrapMaterial(ctx, handle->host->scene->ImageEffectMaterial(*handle->ref, usize(index)));
+    return WrapMaterial(ctx, handle->host->scene->ImageEffectMaterial(*ref, usize(index)));
 }
 
 bool TreeContains(owe::SceneNode* root, owe::SceneNode* needle) {
@@ -3076,6 +3113,18 @@ void BindThisScene(JSContext* ctx, JSValueConst val) {
     JS_FreeValue(ctx, g);
 }
 
+// Per-script binding for event/update dispatch: `thisLayer` is the script's
+// node (or the bootstrap stub), and `thisObject` follows it unless the
+// script is bound to an image effect, which then takes `thisObject`.
+void BindThisForScript(JSContext* ctx, JSValueConst default_layer, FieldScript::Impl* I) {
+    BindThisLayer(ctx, JS_IsUndefined(I->wrapped_layer) ? default_layer : I->wrapped_layer);
+    if (! JS_IsUndefined(I->wrapped_object)) {
+        JSValue g = JS_GetGlobalObject(ctx);
+        JS_SetPropertyStr(ctx, g, "thisObject", JS_DupValue(ctx, I->wrapped_object));
+        JS_FreeValue(ctx, g);
+    }
+}
+
 JSValue MakeMediaPlaybackEvent(JSContext* ctx, const MediaStatus& status) {
     JSValue ev = JS_NewObject(ctx);
     JS_DefinePropertyValueStr(ctx, ev, "state", JS_NewUint32(ctx, status.state), JS_PROP_C_W_E);
@@ -3191,6 +3240,8 @@ JsRuntime::~JsRuntime() {
             JS_FreeValue(m_impl->ctx, fs->m_impl->current_value);
             if (! JS_IsUndefined(fs->m_impl->wrapped_layer))
                 JS_FreeValue(m_impl->ctx, fs->m_impl->wrapped_layer);
+            if (! JS_IsUndefined(fs->m_impl->wrapped_object))
+                JS_FreeValue(m_impl->ctx, fs->m_impl->wrapped_object);
         }
     }
     m_impl->scripts.clear();
@@ -3210,6 +3261,8 @@ JsRuntime::~JsRuntime() {
     }
     for (auto& d : m_impl->host.deferred) {
         if (! JS_IsUndefined(d.fn)) JS_FreeValue(m_impl->ctx, d.fn);
+        if (! JS_IsUndefined(d.bind_layer)) JS_FreeValue(m_impl->ctx, d.bind_layer);
+        if (! JS_IsUndefined(d.bind_object)) JS_FreeValue(m_impl->ctx, d.bind_object);
     }
     m_impl->host.deferred.clear();
     if (m_impl->ctx) JS_FreeContext(m_impl->ctx);
@@ -3254,9 +3307,7 @@ void JsRuntime::SetUserProperty(std::string_view key, const Json& property) {
         if (! I->alive) continue;
         JSValue fn = JS_GetPropertyStr(ctx, I->module_ns, "applyUserProperties");
         if (JS_IsFunction(ctx, fn)) {
-            BindThisLayer(ctx,
-                          JS_IsUndefined(I->wrapped_layer) ? m_impl->host.default_layer
-                                                           : I->wrapped_layer);
+            BindThisForScript(ctx, m_impl->host.default_layer, I);
             m_impl->host.active_field_script = fs.get();
             JSValue arg                      = JS_DupValue(ctx, changed);
             JSValue r                        = JS_Call(ctx, fn, JS_UNDEFINED, 1, &arg);
@@ -3294,8 +3345,7 @@ void JsRuntime::SetMediaStatus(const MediaStatus& status) {
     for (auto& fs : m_impl->scripts) {
         auto* I = fs->m_impl.get();
         if (! I->alive) continue;
-        BindThisLayer(
-            ctx, JS_IsUndefined(I->wrapped_layer) ? m_impl->host.default_layer : I->wrapped_layer);
+        BindThisForScript(ctx, m_impl->host.default_layer, I);
         m_impl->host.active_field_script = fs.get();
         if (playback_changed) {
             JSValue ev = MakeMediaPlaybackEvent(ctx, status);
@@ -3338,6 +3388,21 @@ void RunFieldScriptInit(JSContext* ctx, JsRuntime::Impl* rt, FieldScript* fs);
 void JsRuntime::SetScene(owe::Scene* scene) {
     if (! m_impl) return;
     m_impl->host.scene = scene;
+}
+
+void JsRuntime::BindFieldScriptEffect(FieldScript& script, owe::SceneNode* node,
+                                      std::uint64_t effect_index) {
+    if (! m_impl || ! m_impl->ctx || ! script.m_impl || script.m_impl->rt != m_impl.get()) return;
+    JSContext* ctx = m_impl->ctx;
+    JSValue    obj = JS_NewObjectClass(ctx, s_effect_class_id);
+    if (JS_IsException(obj)) return;
+    auto* host = static_cast<EngineHostState*>(JS_GetContextOpaque(ctx));
+    JS_SetOpaque(obj,
+                 new EffectHandle {
+                     .host = host, .ref = None(), .node = node, .index = effect_index });
+    if (! JS_IsUndefined(script.m_impl->wrapped_object))
+        JS_FreeValue(ctx, script.m_impl->wrapped_object);
+    script.m_impl->wrapped_object = obj; // owned; freed in JsRuntime dtor
 }
 
 void JsRuntime::SetInitializationOrder(FieldScript& script, std::uint64_t order) {
@@ -3390,8 +3455,7 @@ void JsRuntime::TickAll() {
         auto* I = fs->m_impl.get();
         if (! I->alive || ! I->node) continue;
         const bool now_inside = in_window && HitTestNode(I->node, cursor);
-        BindThisLayer(
-            ctx, JS_IsUndefined(I->wrapped_layer) ? m_impl->host.default_layer : I->wrapped_layer);
+        BindThisForScript(ctx, m_impl->host.default_layer, I);
         m_impl->host.active_field_script = fs.get();
         if (now_inside != I->cursor_inside) {
             InvokeEventCallback(ctx,
@@ -3433,8 +3497,7 @@ void JsRuntime::TickAll() {
         if (JS_IsUndefined(I->update_fn)) continue;
         // Swap `thisLayer` to this script's bound node before update. When
         // unbound, restore the original stub captured at bootstrap.
-        BindThisLayer(
-            ctx, JS_IsUndefined(I->wrapped_layer) ? m_impl->host.default_layer : I->wrapped_layer);
+        BindThisForScript(ctx, m_impl->host.default_layer, I);
         m_impl->host.active_field_script = fs.get();
         JSValue ret;
         if (I->update_takes_arg) {
@@ -3554,8 +3617,7 @@ void RunFieldScriptInit(JSContext* ctx, JsRuntime::Impl* rt, FieldScript* fs) {
         return;
     }
 
-    BindThisLayer(ctx,
-                  JS_IsUndefined(I->wrapped_layer) ? rt->host.default_layer : I->wrapped_layer);
+    BindThisForScript(ctx, rt->host.default_layer, I);
     if (! JS_IsUndefined(rt->wrapped_scene)) BindThisScene(ctx, rt->wrapped_scene);
     rt->host.active_field_script = fs;
     JSValue arg                  = JS_DupValue(ctx, I->current_value);

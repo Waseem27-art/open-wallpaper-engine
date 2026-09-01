@@ -147,6 +147,16 @@ bool ImageEffect::FromJson(const owe::Json& json, fs::VFS& vfs, SceneVersion v) 
     std::string filePath;
     owe::GetJsonValue(json, "file", filePath);
     ReadVisibleProperty(json, visible, visible_user);
+    // Effect visibility can be script-driven (the Media Player asset family
+    // toggles cover effects from mediaThumbnailChanged via
+    // `thisObject.visible`). Capture the binding so the parser keeps the
+    // effect and wires the script to the built effect.
+    if (auto value = json.get("visible"_str); value.is_some() && (*value)->is_object()) {
+        FieldBindings fb;
+        (void)AbsorbFieldBinding("visible", **value, fb);
+        if (auto it = fb.scripts.find("visible"); it != fb.scripts.end())
+            visible_script = std::move(it->second);
+    }
     visible_user_key = visible_user.name;
     owe::GetJsonValue(json, "name", name, false);
     owe::GetJsonValue(json, "username", username, false);
